@@ -1,31 +1,44 @@
-from unittest import TestCase
-from database import SteamDatabase
 import decimal
+from datetime import datetime
+from unittest import TestCase
 
-SteamDB = SteamDatabase('.\\sales.db', 'test_sales')
+from db.db import ItemSale, init_db
+
+init_db('sqlite:///sales_test.sqlite')
 
 
 class TestSteamDatabase(TestCase):
 
     def test_select_all_ids(self):
-        db = SteamDB
-        db.insert_data('12345', 'casekey1', False, 1, decimal.Decimal(4.99), decimal.Decimal(4.30))
-        a = db.select_all_ids('casekey1')
-        self.assertEqual(a, ['12345'])
-        db.update_data('12345', 'casekey1', buyer_pays=decimal.Decimal(4.51), you_receive=decimal.Decimal(5.01))
-        b = db.cursor.execute(f"select group_concat(buyer_pays, ', ') from {db.table} where sold=? and name=?;",
-                              (False, 'casekey1',)).fetchall()[0]
-        self.assertEqual(b, ('4.51',))
-        c = db.cursor.execute(f"select group_concat(you_receive, ', ') from {db.table} where sold=? and name=?;",
-                              (False, 'casekey1',)).fetchall()[0]
-        self.assertEqual(c, ('5.01',))
-        db.update_data('12345', 'casekey1', sold=True)
-        d = db.cursor.execute(f"select group_concat(sold, ', ') from {db.table} where sold=? and name=?;",
-                              (True, 'casekey1',)).fetchall()[0]
-        self.assertEqual(d, ('1',))
-        db.delete_data('12345')
-        e = db.cursor.execute(f'select count(*) from {db.table}').fetchall()[0]
-        self.assertEqual(e, (0,))
+        for_db = ItemSale(
+            item_id='12345',
+            date=datetime.now(),
+            name='casekey1',
+            buyer_pays=decimal.Decimal(4.99),
+            you_receive=decimal.Decimal(4.30),
+            account='nasil2nd'
+        )
+        ItemSale.session.add(for_db)
+        ItemSale.session.flush()
+        K = ItemSale.query_ref(item_id='12345').first()
+        self.assertEqual(K.item_id, 12345)
+        K = ItemSale.query_ref(name='casekey1').first()
+        self.assertEqual(K.name, 'casekey1')
+
+        K.buyer_pays = decimal.Decimal(4.51)
+        K.you_receive = decimal.Decimal(5.01)
+        ItemSale.session.flush()
+        K = ItemSale.query_ref(name='casekey1').first()
+        self.assertEqual(K.you_receive, decimal.Decimal(5.01))
+        self.assertEqual(K.buyer_pays, decimal.Decimal(4.51))
+        K.sold = True
+        ItemSale.session.flush()
+        self.assertEqual(K.sold, True)
+        K = ItemSale.query_ref(name='casekey1').first()
+        ItemSale.session.delete(K)
+        ItemSale.session.flush()
+        self.assertEqual(ItemSale.query_ref(name='casekey1').all(), [])
+
 
 # test_db.query(write_query, list_of_fake_params)
 # results = test_db.query(read_query)

@@ -1,7 +1,9 @@
-from unittest import TestCase
-import utilities
 import decimal
+from unittest import TestCase
+
 import pandas as pd
+
+import utilities
 
 
 class Test(TestCase):
@@ -90,8 +92,8 @@ class Test(TestCase):
 
     def test_get_list_items_to_de_list(self):
         test_df = pd.DataFrame(
-            data={'description.market_hash_name': ['aaa', 'bbbb', 'aaa'], "listing_id": ['100', '200', '1000'],
-                  'description.id': ['desc1', 'desc2', 'desc3'], 'description.unowned_id': ['300', '200', '300', ]})
+            data={'market_hash_name': ['aaa', 'bbbb', 'aaa'], "listing_id": ['100', '200', '1000'],
+                  'id': ['desc1', 'desc2', 'desc3'], 'unowned_id': ['300', '200', '300', ]})
         output = utilities.get_list_items_to_de_list('aaa', 2, test_df)
         self.assertEqual(output[0]['name'] == output[1]['name'] == 'aaa', True)
         self.assertEqual(output, [{'name': 'aaa', 'listing_id': '100', 'itemID': 'desc1', 'Unowned_itemID': '300'},

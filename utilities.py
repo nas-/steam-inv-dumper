@@ -1,14 +1,16 @@
 import decimal
-
+import logging
 import math
 import re
-from typing import List, Dict, Union
+from typing import Dict, List, Union
 
 from pandas import DataFrame
+from steampy.models import Currency, GameOptions
+
+logger = logging.getLogger(__name__)
 
 
 def convert_euro_prices(price: str) -> decimal.Decimal:
-    decimal.getcontext().prec = 2
     price = str(price)
     pattern = r'\D?(\d*)(\.|,)?(\d*)'
     tokens = re.search(pattern, price, re.UNICODE)
@@ -16,8 +18,8 @@ def convert_euro_prices(price: str) -> decimal.Decimal:
     return decimal.Decimal(decimal_str)
 
 
-def get_list_items_to_list(name: str, number: int, price: decimal.Decimal, inventory: DataFrame) -> List[Dict[str, Union[Union[str, int]]]]:
-    decimal.getcontext().prec = 2
+def get_list_items_to_list(name: str, number: int, price: decimal.Decimal, inventory: DataFrame) -> List[
+    Dict[str, Union[Union[str, int]]]]:
     inventory = inventory[(inventory['market_hash_name'] == name) & (inventory['marketable'] == 1)]
     _assetsID = list(inventory['id'])
     prices = get_steam_fees_object(price)
@@ -33,15 +35,13 @@ def get_list_items_to_list(name: str, number: int, price: decimal.Decimal, inven
 
 
 def get_list_items_to_de_list(name: str, number_to_remove: int, listings: DataFrame) -> List[Dict[str, str]]:
-    decimal.getcontext().prec = 2
-    listings = listings[listings['description.market_hash_name'] == name].reset_index(drop=True)
-    _listingID = list(listings['listing_id'])
+    listings = listings[listings['market_hash_name'] == name].reset_index(drop=True)
     data = []
     for listing_number in range(number_to_remove):
         temp = listings.loc[listing_number:listing_number, :]
         data.append(
-            {'name': name, 'listing_id': temp['listing_id'].values[0], 'itemID': temp['description.id'].values[0],
-             'Unowned_itemID': temp['description.unowned_id'].values[0]})
+            {'name': name, 'listing_id': temp['listing_id'].values[0], 'itemID': temp['id'].values[0],
+             'Unowned_itemID': temp['unowned_id'].values[0]})
     return data
 
 
@@ -82,7 +82,7 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
                'amount': int(fees['amount']), 'money_to_ask': int(
             calculate_amount_to_send_for_desired_received_amount(fees['amount'] - fees['fees'])['amount'])}
     intfees['you_receive'] = int(intfees['money_to_ask'] - calculate_amount_to_send_for_desired_received_amount(
-                                                            fees['amount'] - fees['fees'])['fees'])
+        fees['amount'] - fees['fees'])['fees'])
 
     return intfees
 
@@ -141,19 +141,13 @@ def how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory):
         return 0
 
 
-"""
-#rate limiter?
-def RateLimited(maxPerSecond):
-    minInterval = 1.0 / float(maxPerSecond)
-    def decorate(func):
-        lastTimeCalled = [0.0]
-        def rateLimitedFunction(*args,**kwargs):
-            elapsed = time.clock() - lastTimeCalled[0]
-            leftToWait = minInterval - elapsed
-            if leftToWait>0:
-                time.sleep(leftToWait)
-            ret = func(*args,**kwargs)
-            lastTimeCalled[0] = time.clock()
-            return ret
-        return rateLimitedFunction
-    return decorate"""
+def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
+    _priceData = steam_market.fetch_price(market_hash_name, game=GameOptions.CS, currency=Currency.EURO)
+    try:
+        _priceData['lowest_price'] = convert_euro_prices(_priceData['lowest_price'])
+        _priceData['median_price'] = convert_euro_prices(_priceData['median_price'])
+    except KeyError:
+        _priceData['lowest_price'] = convert_euro_prices(_priceData['lowest_price'])
+        _priceData['median_price'] = 0
+        # TODO Care about this. Don't like to set median price =0
+    return max(_priceData['lowest_price'], _priceData['median_price']) - decimal.Decimal('0.01')

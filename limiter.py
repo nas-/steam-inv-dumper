@@ -1,14 +1,18 @@
-from ratelimit import limits, RateLimitException
-from backoff import on_exception, expo
-import steampy
-import requests
+import logging
 from typing import Callable, Dict
 
+import requests
+from backoff import expo, on_exception
+from ratelimit import RateLimitException, limits
+from steampy.market import SteamMarket
 
-class SteamLimited(steampy.market.SteamMarket):
+logger = logging.getLogger(__name__)
+
+
+class SteamLimited(SteamMarket):
     def __init__(self, session: requests.Session, steamguard: Dict, session_id: str) -> None:
         super().__init__(session)
-        super()._set_login_executed(steamguard, session_id)
+        self._set_login_executed(steamguard, session_id)
 
     @on_exception(expo, RateLimitException, max_tries=8)
     @limits(calls=1, period=3)

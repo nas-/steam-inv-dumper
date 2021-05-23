@@ -1,7 +1,7 @@
-from typing import List
-import sqlite3
 import datetime
 import decimal
+import sqlite3
+from typing import List
 
 
 class SteamDatabase(object):

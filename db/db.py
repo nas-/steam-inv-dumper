@@ -1,22 +1,24 @@
+import datetime
+import decimal
+import logging
 from typing import Any, Dict, Optional
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, DECIMAL, Numeric
+import sqlalchemy.types as types
+from sqlalchemy import (DECIMAL, Boolean, Column, DateTime, Integer, Numeric,
+                        String, create_engine)
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import scoped_session, sessionmaker, Query
+from sqlalchemy.orm import Query, scoped_session, sessionmaker
 from sqlalchemy.pool import StaticPool
-import datetime
 
-import decimal
-
-import sqlalchemy.types as types
+logger = logging.getLogger(__name__)
 
 _DECL_BASE: Any = declarative_base()
 _SQL_DOCS_URL = 'http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls'
 _DB_URL = 'sqlite:///sales.sqlite'
 
 
-def init_db(db_url: str) -> None:
+def init_db(db_url: str = _DB_URL) -> None:
     """
     Initializes this module with the given config,
     registers all known command handlers
@@ -67,12 +69,11 @@ class ItemSale(_DECL_BASE):
     decimal.getcontext().prec = 3
 
     __tablename__ = 'sales'
-
-    id = Column(Integer, primary_key=True)
+    item_id = Column(Integer, nullable=False,primary_key=True)
     date = Column(DateTime, nullable=False)
     name = Column(String, nullable=False)
     sold = Column(Boolean, nullable=False, default=False)
-    quantity = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)
     buyer_pays = Column(SqliteNumeric(12, 3), nullable=False)
     you_receive = Column(SqliteNumeric(12, 3), nullable=False)
     currency = Column(String, nullable=False, default='USD')
@@ -90,9 +91,10 @@ class ItemSale(_DECL_BASE):
         }
 
     @staticmethod
-    def query_ref(name: Optional[str] = None) -> Query:
+    def query_ref(name: Optional[str] = None, item_id: Optional[str] = None) -> Query:
         """
         Get all currently active locks for this pair
+        :param item_id: Itemid to Check for
         :rtype: object
         :param name: Skin to check for.
         """
