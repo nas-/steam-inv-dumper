@@ -191,29 +191,31 @@ def main_loop() -> None:
     listings_sell = get_own_listings()
 
     for item in items_to_sell:
-        _ItemSaleListings = listings_sell[listings_sell['market_hash_name'] == item].sort_values(
-            by=['you_receive', 'created_on'])
-        _numberToSell = items_to_sell[item]['quantity']
+        _ItemSaleListings = listings_sell[listings_sell['market_hash_name'] == item]
+        _numberToSell = items_to_sell[item].get('quantity', 0)
         _min_price = items_to_sell[item]['min_price']
         _ItemInInventory = my_items[my_items['market_hash_name'] == item]
-        _myListings_min_price = _ItemSaleListings['buyer_pay'].min()
+        if _ItemSaleListings.empty:
+            _myListings_min_price = 0
+        else:
+            _myListings_min_price = _ItemSaleListings['buyer_pay'].min()
 
         update_sold_items(item, _ItemInInventory, _ItemSaleListings)
 
-        actions = utilities.actions_to_make_list_delist(N_MarketListings=_ItemSaleListings.shape[0],
-                                                        N_InInventory=_ItemInInventory.shape[0],
-                                                        MinPriceOfMyMarketListings=_myListings_min_price,
-                                                        ItemSellingPrice=utilities.get_item_price(steam_market, item),
-                                                        N_NumberToSell=_numberToSell, minAllowedPrice=_min_price)
+        actions = utilities.actions_to_make_list_delist(nMarketListings=_ItemSaleListings.shape[0],
+                                                        nInInventory=_ItemInInventory.shape[0],
+                                                        minPriceOfMyMarketListings=_myListings_min_price,
+                                                        itemSellingPrice=utilities.get_item_price(steam_market, item),
+                                                        nNumberToSell=_numberToSell, minAllowedPrice=_min_price)
         logger.info(f'{item}  {actions}')
 
         # Items to sell
-        listItemsToSell = utilities.get_list_items_to_list(item, actions["list"]["qty"], actions["list"]["price"],
-                                                           _ItemInInventory)
+        listItemsToSell = utilities.get_items_to_list(item, actions["list"]["qty"], actions["list"]["price"],
+                                                      _ItemInInventory)
         dispatch_sales(item, listItemsToSell, DEBUG)
 
         # Items to delete
-        listItemsToDeList = utilities.get_list_items_to_de_list(item, actions["delist"]["qty"], _ItemSaleListings)
+        listItemsToDeList = utilities.get_items_to_delist(item, actions["delist"]["qty"], _ItemSaleListings)
         dispatch_delists(item, listItemsToDeList, DEBUG)
 
 

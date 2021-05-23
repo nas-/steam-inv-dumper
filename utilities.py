@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 def convert_euro_prices(price: str) -> decimal.Decimal:
+    """
+    Converts string to decimal price
+    :param price: price as string
+    :return: price as decimal.Decimal
+    """
     price = str(price)
     pattern = r'\D?(\d*)(\.|,)?(\d*)'
     tokens = re.search(pattern, price, re.UNICODE)
@@ -18,8 +23,16 @@ def convert_euro_prices(price: str) -> decimal.Decimal:
     return decimal.Decimal(decimal_str)
 
 
-def get_list_items_to_list(name: str, number: int, price: decimal.Decimal, inventory: DataFrame) -> List[
-    Dict[str, Union[Union[str, int]]]]:
+def get_items_to_list(name: str, number: int, price: decimal.Decimal, inventory: DataFrame) -> List[Dict]:
+    """
+    Gets a list of length "number" of items in inventory to be put on sale
+    :param name: Name of item
+    :param number: Number of items to list.
+    :param price: price of items to list as Decimal.Decimal
+    :param inventory: Dataframe containing the inventory
+    :return:List of Dicts regarding items to sell.
+    """
+    # TODO check what exactly is price.
     inventory = inventory[(inventory['market_hash_name'] == name) & (inventory['marketable'] == 1)]
     _assetsID = list(inventory['id'])
     prices = get_steam_fees_object(price)
@@ -34,7 +47,14 @@ def get_list_items_to_list(name: str, number: int, price: decimal.Decimal, inven
     ]
 
 
-def get_list_items_to_de_list(name: str, number_to_remove: int, listings: DataFrame) -> List[Dict[str, str]]:
+def get_items_to_delist(name: str, number_to_remove: int, listings: DataFrame) -> List[Dict[str, str]]:
+    """
+    Gets a list of length "number" of items on sale to be removed from sale.
+    :param name: Name of item
+    :param number_to_remove: Number of items to remove.
+    :param listings: Dataframe containing the listings.
+    :return:List of Dicts regarding items to remove
+    """
     listings = listings[listings['market_hash_name'] == name].reset_index(drop=True)
     data = []
     for listing_number in range(number_to_remove):
@@ -46,9 +66,20 @@ def get_list_items_to_de_list(name: str, number_to_remove: int, listings: DataFr
 
 
 def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
+    """
+    Given a price, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
+    :param price: Price for sale (money_to_ask)
+    :return: Dict of different prices (In cents).
+    keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'
+    """
     decimal.getcontext().prec = 28
 
-    def calculate_amount_to_send_for_desired_received_amount(price_inner: float) -> Dict[str, float]:
+    def amount_to_send_desired_received_amt(price_inner: float) -> Dict[str, float]:
+        """
+        calculate_amount_to_send_for_desired_received_amount
+        :param price_inner:
+        :return:
+        """
         _steamFee = int(math.floor(max(price_inner * 0.05, 1)))
         _pubFee = int(math.floor(max(price_inner * 0.10, 1)))
 
@@ -61,11 +92,11 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     bEverUndershot = False
     price = int(price * 100)
     nEstimatedAmountOfWalletFundsReceivedByOtherParty = round(price / (0.05 + 0.10 + 1), 0)
-    fees = calculate_amount_to_send_for_desired_received_amount(nEstimatedAmountOfWalletFundsReceivedByOtherParty)
+    fees = amount_to_send_desired_received_amt(nEstimatedAmountOfWalletFundsReceivedByOtherParty)
     while (fees['amount'] != price) & (iterations < 15):
         if fees['amount'] > price:
             if bEverUndershot:
-                fees = calculate_amount_to_send_for_desired_received_amount(
+                fees = amount_to_send_desired_received_amt(
                     nEstimatedAmountOfWalletFundsReceivedByOtherParty - 1)
                 fees['steam_fee'] += int((price - fees['amount']))
                 fees['fees'] += int((price - fees['amount']))
@@ -76,13 +107,15 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
         else:
             bEverUndershot = True
             nEstimatedAmountOfWalletFundsReceivedByOtherParty += 1
-        fees = calculate_amount_to_send_for_desired_received_amount(nEstimatedAmountOfWalletFundsReceivedByOtherParty)
+        fees = amount_to_send_desired_received_amt(nEstimatedAmountOfWalletFundsReceivedByOtherParty)
         iterations += 1
-    intfees = {'steam_fee': int(fees['steam_fee']), 'publisher_fee': int(fees['publisher_fee']),
-               'amount': int(fees['amount']), 'money_to_ask': int(
-            calculate_amount_to_send_for_desired_received_amount(fees['amount'] - fees['fees'])['amount'])}
-    intfees['you_receive'] = int(intfees['money_to_ask'] - calculate_amount_to_send_for_desired_received_amount(
-        fees['amount'] - fees['fees'])['fees'])
+
+    intfees = {'steam_fee': int(fees['steam_fee']),
+               'publisher_fee': int(fees['publisher_fee']),
+               'money_to_ask': int(amount_to_send_desired_received_amt(fees['amount'] - fees['fees'])['amount'])
+               }
+    intfees['you_receive'] = int(
+        intfees['money_to_ask'] - amount_to_send_desired_received_amt(fees['amount'] - fees['fees'])['fees'])
 
     return intfees
 
@@ -116,24 +149,31 @@ def actions_to_make_list_delist(N_MarketListings: int, MinPriceOfMyMarketListing
 
             else:
 
-                raise RuntimeError("You should have never reached this point", N_MarketListings,
-                                   MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory, ItemSellingPrice,
-                                   minAllowedPrice)
 
-        elif should_list > 0:
-            return {'delist': {"qty": 0, "price": MinPriceOfMyMarketListings},
-                    'list': {"qty": should_list, "price": _selling_price}}
-    elif MinPriceOfMyMarketListings == _selling_price:
-        should_list = how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory)
-        return {'delist': {"qty": 0, "price": MinPriceOfMyMarketListings},
-                'list': {"qty": should_list, "price": _selling_price}}
-    elif MinPriceOfMyMarketListings < _selling_price:
-        should_list = how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory)
-        return {'delist': {"qty": N_MarketListings, "price": MinPriceOfMyMarketListings},
-                'list': {"qty": should_list, "price": _selling_price}}
+def determine_number_to_list(maxAvaliableList, itemsCoulBeListed,nNumberToSell):
+    """
+    returns number of items to list
+    :param maxAvaliableList:
+    :param itemsCoulBeListed:
+    :return:
+    """
+    if itemsCoulBeListed > 0:
+        if maxAvaliableList > itemsCoulBeListed:
+            return maxAvaliableList
+        elif maxAvaliableList == itemsCoulBeListed:
+            return 0
+    elif itemsCoulBeListed == 0:
+        return 0
 
 
 def how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory):
+    """
+    How many items I can actually list on market to have N_NumberToSell on sale
+    :param N_MarketListings:
+    :param N_NumberToSell:
+    :param N_InInventory:
+    :return: number that can be listed
+    """
     if N_NumberToSell > N_MarketListings:
         toList = N_NumberToSell - N_MarketListings
         return min(toList, N_InInventory)

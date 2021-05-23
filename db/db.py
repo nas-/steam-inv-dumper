@@ -76,7 +76,7 @@ class ItemSale(_DECL_BASE):
     quantity = Column(Integer, nullable=False, default=1)
     buyer_pays = Column(SqliteNumeric(12, 3), nullable=False)
     you_receive = Column(SqliteNumeric(12, 3), nullable=False)
-    currency = Column(String, nullable=False, default='USD')
+    currency = Column(String, nullable=False, default='EUR')
     account = Column(String, nullable=False, default='')
 
     def to_json(self) -> Dict[str, Any]:
