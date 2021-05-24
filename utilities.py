@@ -183,21 +183,18 @@ def determine_delists(market_listings, min_price_market_listing, max_on_sale, to
 def determine_lists(market_listings, min_price_market_listing, max_on_sale, tot_in_inventory, usual_price,
                     min_allowed_price):
     # Convertions
-    min_price_market_listing = decimal.Decimal(min_price_market_listing) + 0
     usual_price = decimal.Decimal(usual_price) + 0
     min_allowed_price = decimal.Decimal(min_allowed_price) + 0
 
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
 
     amount = 0
-    price = 0
     if canListMoreItems:
         amount = min(tot_in_inventory, max_on_sale - market_listings)
 
-    price = usual_price
-
-    price = max(price, min_allowed_price)
-
+    price = max(usual_price, min_allowed_price)
+    assert amount >= 0
+    assert price >= min_allowed_price
     return {'qty': amount, 'price': price}
 
 

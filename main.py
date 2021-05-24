@@ -201,7 +201,7 @@ def main_loop() -> None:
             _myListings_min_price = _ItemSaleListings['buyer_pay'].min()
 
         update_sold_items(item, _ItemInInventory, _ItemSaleListings)
-
+        #TODO see if ItemSellingPrice,minAllowedPrice can be merged here.
         actions = utilities.actions_to_make_list_delist(N_MarketListings=_ItemSaleListings.shape[0],
                                                         N_InInventory=_ItemInInventory.shape[0],
                                                         MinPriceOfMyMarketListings=_myListings_min_price,
