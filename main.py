@@ -202,11 +202,12 @@ def main_loop() -> None:
 
         update_sold_items(item, _ItemInInventory, _ItemSaleListings)
 
-        actions = utilities.actions_to_make_list_delist(nMarketListings=_ItemSaleListings.shape[0],
-                                                        nInInventory=_ItemInInventory.shape[0],
-                                                        minPriceOfMyMarketListings=_myListings_min_price,
-                                                        itemSellingPrice=utilities.get_item_price(steam_market, item),
-                                                        nNumberToSell=_numberToSell, minAllowedPrice=_min_price)
+        actions = utilities.actions_to_make_list_delist(N_MarketListings=_ItemSaleListings.shape[0],
+                                                        N_InInventory=_ItemInInventory.shape[0],
+                                                        MinPriceOfMyMarketListings=_myListings_min_price,
+                                                        ItemSellingPrice=utilities.get_item_price(steam_market, item),
+                                                        N_NumberToSell=_numberToSell,
+                                                        minAllowedPrice=_min_price)
         logger.info(f'{item}  {actions}')
 
         # Items to sell
