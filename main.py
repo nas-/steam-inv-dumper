@@ -10,9 +10,8 @@ from steampy.utils import GameOptions
 
 import utilities
 from db.db import ItemSale, init_db
-from limiter import SteamLimited
 from logger import setup_logging, setup_logging_pre
-from steam import SteamClientPatched
+from steam import SteamClientPatched, SteamLimited
 
 setup_logging_pre()
 setup_logging(1)
@@ -27,16 +26,21 @@ def load_config(config: str) -> dict:
 
 CONFIG = load_config('config.json')
 
-try:
-    steam_client = SteamClientPatched.from_pickle(CONFIG['username'])
-    logger.info('Successfully logged in Steam trough Cookies')
-except ValueError:
-    logger.info('Successfully logged in Steam trough Cookies')
+if CONFIG.get('use_cookies', False):
+    try:
+        steam_client = SteamClientPatched.from_pickle(CONFIG['username'])
+        logger.info('Successfully logged in Steam trough Cookies')
+    except ValueError:
+        logger.info('Successfully logged in Steam trough Cookies')
+        steam_client: SteamClientPatched = SteamClientPatched(CONFIG['apikey'])
+        steam_client.login(CONFIG['username'], CONFIG['password'], str(CONFIG['steamguard']))
+        steam_client.to_pickle(CONFIG['username'])
+else:
     steam_client: SteamClientPatched = SteamClientPatched(CONFIG['apikey'])
-    steam_client.login(CONFIG['username'], CONFIG['password'], str(CONFIG['steamguard']))
+    steam_client.login(CONFIG['username'], CONFIG['password'], json.dumps(CONFIG['steamguard']))
     steam_client.to_pickle(CONFIG['username'])
 
-steam_market = SteamLimited(steam_client._session, steam_client.steam_guard, steam_client._get_session_id())
+steam_market = SteamLimited(steam_client.session, CONFIG['steamguard'], steam_client.session_id)
 
 DEBUG = True
 if DEBUG:
