@@ -1,28 +1,49 @@
 import decimal
+import json
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Union
+from typing import List
 
 import pandas as pd
-from steampy.client import SteamClient
 from steampy.utils import GameOptions
 
 import utilities
 from db.db import ItemSale, init_db
 from limiter import SteamLimited
 from logger import setup_logging, setup_logging_pre
+from steam import SteamClientPatched
+
+setup_logging_pre()
+setup_logging(1)
 
 logger = logging.getLogger(__name__)
 
-steam_client: SteamClient = SteamClient('6CD2756FFD4165F0AFAC17FF3AB81997')
-# noinspection SpellCheckingInspection
-steam_client.login('nasil2nd', 'm4mpleir4ny', 'Steamguard.txt')
+
+def load_config(config: str) -> dict:
+    with open(config, 'r') as f:
+        return json.loads(f.read())
+
+
+CONFIG = load_config('config.json')
+
+try:
+    steam_client = SteamClientPatched.from_pickle(CONFIG['username'])
+    logger.info('Successfully logged in Steam trough Cookies')
+except ValueError:
+    logger.info('Successfully logged in Steam trough Cookies')
+    steam_client: SteamClientPatched = SteamClientPatched(CONFIG['apikey'])
+    steam_client.login(CONFIG['username'], CONFIG['password'], str(CONFIG['steamguard']))
+    steam_client.to_pickle(CONFIG['username'])
+
 steam_market = SteamLimited(steam_client._session, steam_client.steam_guard, steam_client._get_session_id())
 
-DEBUG = False
+DEBUG = True
 if DEBUG:
     init_db('sqlite:///sales_debug.sqlite')
+    ItemSale.query.delete()
+    ItemSale.session.flush()
+
 else:
     init_db()
 
@@ -30,9 +51,10 @@ else:
 decimal.getcontext().prec = 3
 
 items_to_sell = {
-    "CS:GO Weapon Case 2": {"quantity": 1, "min_price": 12},
-    'eSports 2013 Winter Case': {"quantity": 1,
-                                 "min_price": 8}}
+    "CS:GO Weapon Case 2": {"quantity": 1, "min_price": 4.40},
+    'eSports 2013 Winter Case': {"quantity": 3,
+                                 "min_price": 3.00}
+}
 
 
 def dispatch_delists(item: str, toDelist: List, debug: bool) -> None:
@@ -73,7 +95,7 @@ def dispatch_sales(item: str, listItemsToSell: List, debug: bool):
     for element in listItemsToSell:
         if debug:
             logger.debug(f'{item} create_sell_order({str(element["assetsID"])} )'
-                         f',money_to_receive={str(int(element["you_receive"]))}')
+                         f',money_to_receive={element["you_receive"]} buyer_pays {element["buyer_pays"]}')
         else:
             logger.debug(f'{item} creating real sell order')
             steam_market.create_sell_order(str(element['assetsID']), game=GameOptions.CS,
@@ -201,7 +223,7 @@ def main_loop() -> None:
             _myListings_min_price = _ItemSaleListings['buyer_pay'].min()
 
         update_sold_items(item, _ItemInInventory, _ItemSaleListings)
-        #TODO see if ItemSellingPrice,minAllowedPrice can be merged here.
+        # TODO see if ItemSellingPrice,minAllowedPrice can be merged here.
         actions = utilities.actions_to_make_list_delist(N_MarketListings=_ItemSaleListings.shape[0],
                                                         N_InInventory=_ItemInInventory.shape[0],
                                                         MinPriceOfMyMarketListings=_myListings_min_price,
@@ -221,8 +243,7 @@ def main_loop() -> None:
 
 
 if __name__ == '__main__':
-    setup_logging_pre()
-    setup_logging(1)
+
     for i in range(0, 50):
         main_loop()
         time.sleep(1800)
