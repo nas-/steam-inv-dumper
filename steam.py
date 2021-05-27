@@ -1,12 +1,16 @@
 import logging
 import pickle as cpickle
-from typing import Callable, Dict
+from typing import Callable
 
+import bs4
 import requests
 from backoff import expo, on_exception
 from ratelimit import RateLimitException, limits
 from steampy.client import SteamClient
 from steampy.market import SteamMarket
+from steampy.models import Currency, SteamUrl
+
+from utilities import convert_string_prices
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +77,14 @@ class SteamClientPatched(SteamClient):
     @property
     def session_id(self):
         return self._get_session_id()
+
+    def get_wallet_balance_and_currency(self):
+        url = SteamUrl.STORE_URL + '/account/history/'
+        response = self._session.get(url)
+        response_soup = bs4.BeautifulSoup(response.text, "html.parser")
+        balance_string = response_soup.find(id='header_wallet_balance').string
+
+        balance = convert_string_prices(balance_string)
+        choiches = {'pуб.': Currency.RUB, '€': Currency.EURO, 'USD': Currency.USD}
+        currency = [key for key in choiches if key in balance_string]
+        return {'amount': balance, 'currency': choiches.get(currency[0], '')}

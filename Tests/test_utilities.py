@@ -261,6 +261,27 @@ class TestActions(TestCase):
                                    'list': {'qty': 5, 'price': D('1.80')}})
         self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
 
+    def test_same_price(self):
+        tot_in_inventory = 19
+        market_listings = 1
+        max_on_sale = 1
+        min_price_market_listing = D('12.40')
+        usual_price = D('6')
+        min_allowed_price = D('12.40')
+
+        actions = utilities.actions_to_make_list_delist(market_listings,
+                                                        min_price_market_listing,
+                                                        max_on_sale,
+                                                        tot_in_inventory,
+                                                        usual_price,
+                                                        min_allowed_price)
+
+        self.assertEqual(actions, {'delist': {'qty': 0, 'price': D('12.4')},
+                                   'list': {'qty': 0, 'price': D('12.4')}})
+        self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
+
+
+
     def test_delist_all_and_relist(self):
         # Ne ho 2 listati @ 1.80
         # 3 in inv, max on sale 5

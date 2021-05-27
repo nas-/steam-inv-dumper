@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 _DECL_BASE: Any = declarative_base()
 _SQL_DOCS_URL = 'http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls'
 _DB_URL = 'sqlite:///sales.sqlite'
+#TODO make _DB url loadable from config.
+#TODO make so that cancelled orders show up in db.
 
 
 def init_db(db_url: str = _DB_URL) -> None:

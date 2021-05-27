@@ -81,37 +81,6 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     """
     decimal.getcontext().prec = 28
 
-    wallets = {"RU": {
-        "wallet_fee": "1",
-        "wallet_fee_base": "0",
-        "wallet_fee_minimum": "1",
-        "wallet_fee_percent": "0.05",
-        "wallet_publisher_fee_percent_default": "0.10"
-    },
-        "EUR": {
-            "wallet_fee": "1",
-            "wallet_fee_base": "0",
-            "wallet_fee_minimum": "1",
-            "wallet_fee_percent": "0.05",
-            "wallet_publisher_fee_percent_default": "0.10"
-        },
-        "USD": {
-            "wallet_fee": "1",
-            "wallet_fee_base": "0",
-            "wallet_fee_minimum": "1",
-            "wallet_fee_percent": "0.05",
-            "wallet_publisher_fee_percent_default": "0.10"
-        },
-        "HK": {
-            "wallet_fee": "1",
-            "wallet_fee_base": "0",
-            "wallet_fee_minimum": "1",
-            "wallet_fee_percent": "0.05",
-            "wallet_publisher_fee_percent_default": "0.10"
-        }
-
-    }
-
     def amount_to_send_desired_received_amt(price_inner: float) -> Dict[str, float]:
         """
         calculate_amount_to_send_for_desired_received_amount
@@ -155,15 +124,17 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     intfees['you_receive'] = int(
         intfees['money_to_ask'] - amount_to_send_desired_received_amt(fees['amount'] - fees['fees'])['fees'])
 
+    decimal.getcontext().prec = 3
     return intfees
 
 
 def actions_to_make_list_delist(N_MarketListings: int, MinPriceOfMyMarketListings: float, N_NumberToSell: int,
                                 N_InInventory: int, ItemSellingPrice: decimal.Decimal, minAllowedPrice: float) -> Dict:
-    actions = {}
-    actions['delist'] = determine_delists(N_MarketListings, MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory,
-                                          ItemSellingPrice, minAllowedPrice)
+    # TODO avoid this {'delist': {'qty': 1, 'price': Decimal('12.4')}, 'list': {'qty': 1, 'price': Decimal('12.4')}}
+    actions = {'delist': determine_delists(N_MarketListings, MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory,
+                                           ItemSellingPrice, minAllowedPrice)}
     N_MarketListings -= actions['delist']['qty']
+    assert N_MarketListings >= 0
 
     actions['list'] = determine_lists(N_MarketListings, MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory,
                                       ItemSellingPrice, minAllowedPrice)
@@ -196,6 +167,9 @@ def determine_delists(market_listings, min_price_market_listing, max_on_sale, to
         amount = 0
     elif max_on_sale == 0:
         amount = market_listings
+    elif price == min_allowed_price:
+        # Returns more than 0 if I have more than allowed listings.
+        amount = max(0, market_listings - max_on_sale)
     elif canListMoreItems:
         # I can list more from inv. No need for delists.
         if min_price_market_listing < min_allowed_price:
