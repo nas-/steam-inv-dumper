@@ -15,6 +15,13 @@ class Test(TestCase):
             decimal_price = utilities.convert_string_prices(price)
             self.assertEqual(decimal_price, D('2.42'))
 
+    def test_convert_string_prices_point_in_between(self):
+        prices = ['4,234.35 €', '4,234.35 pуб.', '4,234.35 USD']
+        prices += ['pуб. 4,234.35 €', 'pуб.4,234.35 pуб.', '4,234.35 USD']
+        for price in prices:
+            decimal_price = utilities.convert_string_prices(price)
+            self.assertEqual(decimal_price, D('4234.35'))
+
     def test_convert_string_prices_no_decimal(self):
         prices = ['2.--€', '2.-- pуб.', '2.-- USD', '2.-- HK$']
         prices += ['2.-€', '2.- pуб.', '2.- USD', '2.- HK$']
@@ -37,7 +44,6 @@ class Test(TestCase):
         for price in prices:
             decimal_price = utilities.convert_string_prices(price)
             self.assertEqual(decimal_price, D('2.31'))
-
 
     def test_get_steam_fees_object(self):
         price = D('0.03')

@@ -18,10 +18,16 @@ def convert_string_prices(price: str) -> decimal.Decimal:
     :return: price as decimal.Decimal
     """
     price = str(price)
+
     pattern = r'\D*(\d*)(\.|,)?(\d*)'
-    tokens = re.search(pattern, price, re.UNICODE)
-    decimal_str = tokens.group(1) + '.' + tokens.group(3)
-    return decimal.Decimal(decimal_str)
+
+    while True:
+        tokens = re.search(pattern, price, re.UNICODE)
+        if len(tokens.group(3)) > 2:
+            price = price.replace(tokens.group(2), '')
+        else:
+            decimal_str = tokens.group(1) + '.' + tokens.group(3)
+            return decimal.Decimal(decimal_str)
 
 
 def get_items_to_list(name: str, number: int, price: decimal.Decimal, inventory: DataFrame) -> List[Dict]:
@@ -76,35 +82,35 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     decimal.getcontext().prec = 28
 
     wallets = {"RU": {
-                    "wallet_fee": "1",
-                    "wallet_fee_base": "0",
-                    "wallet_fee_minimum": "1",
-                    "wallet_fee_percent": "0.05",
-                    "wallet_publisher_fee_percent_default": "0.10"
-                },
-               "EUR": {
-                   "wallet_fee": "1",
-                   "wallet_fee_base": "0",
-                   "wallet_fee_minimum": "1",
-                   "wallet_fee_percent": "0.05",
-                   "wallet_publisher_fee_percent_default": "0.10"
-               },
-               "USD": {
-                   "wallet_fee": "1",
-                   "wallet_fee_base": "0",
-                   "wallet_fee_minimum": "1",
-                   "wallet_fee_percent": "0.05",
-                   "wallet_publisher_fee_percent_default": "0.10"
-               },
-               "HK": {
-                   "wallet_fee": "1",
-                   "wallet_fee_base": "0",
-                   "wallet_fee_minimum": "1",
-                   "wallet_fee_percent": "0.05",
-                   "wallet_publisher_fee_percent_default": "0.10"
-               }
+        "wallet_fee": "1",
+        "wallet_fee_base": "0",
+        "wallet_fee_minimum": "1",
+        "wallet_fee_percent": "0.05",
+        "wallet_publisher_fee_percent_default": "0.10"
+    },
+        "EUR": {
+            "wallet_fee": "1",
+            "wallet_fee_base": "0",
+            "wallet_fee_minimum": "1",
+            "wallet_fee_percent": "0.05",
+            "wallet_publisher_fee_percent_default": "0.10"
+        },
+        "USD": {
+            "wallet_fee": "1",
+            "wallet_fee_base": "0",
+            "wallet_fee_minimum": "1",
+            "wallet_fee_percent": "0.05",
+            "wallet_publisher_fee_percent_default": "0.10"
+        },
+        "HK": {
+            "wallet_fee": "1",
+            "wallet_fee_base": "0",
+            "wallet_fee_minimum": "1",
+            "wallet_fee_percent": "0.05",
+            "wallet_publisher_fee_percent_default": "0.10"
+        }
 
-               }
+    }
 
     def amount_to_send_desired_received_amt(price_inner: float) -> Dict[str, float]:
         """
