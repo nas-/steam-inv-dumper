@@ -188,8 +188,8 @@ def get_own_listings() -> pd.DataFrame:
             pd.json_normalize(list(listings['sell_listings'].values())), columns=columns_to_keep)
     listings_sell = listings_sell.rename(rename, axis=1)
 
-    listings_sell['buyer_pay'] = listings_sell['buyer_pay'].apply(utilities.convert_euro_prices)
-    listings_sell['you_receive'] = listings_sell['you_receive'].apply(utilities.convert_euro_prices)
+    listings_sell['buyer_pay'] = listings_sell['buyer_pay'].apply(utilities.convert_string_prices)
+    listings_sell['you_receive'] = listings_sell['you_receive'].apply(utilities.convert_string_prices)
     return listings_sell
 
 
@@ -227,7 +227,7 @@ def main_loop() -> None:
             _myListings_min_price = _ItemSaleListings['buyer_pay'].min()
 
         update_sold_items(item, _ItemInInventory, _ItemSaleListings)
-        # TODO see if ItemSellingPrice,minAllowedPrice can be merged here.
+        # TODO see if ItemSellingPrice,minAllowedPrice can be merged here into a single variable
         actions = utilities.actions_to_make_list_delist(N_MarketListings=_ItemSaleListings.shape[0],
                                                         N_InInventory=_ItemInInventory.shape[0],
                                                         MinPriceOfMyMarketListings=_myListings_min_price,

@@ -8,20 +8,36 @@ import utilities
 
 
 class Test(TestCase):
-    def test_convert_euro_prices(self):
-        price = '2,42€'
-        decimal_price = utilities.convert_euro_prices(price)
-        self.assertEqual(decimal_price, D('2.42'))
+    def test_convert_string_prices(self):
+        prices = ['2,42€', '2,42pуб.', '2,42USD', '2,42HK$']
+        prices += ['2.42€', '2.42pуб.', '2.42USD', '2.42HK$']
+        for price in prices:
+            decimal_price = utilities.convert_string_prices(price)
+            self.assertEqual(decimal_price, D('2.42'))
 
-    def test_convert_euro_prices_no_decimal(self):
-        price = '2.--€'
-        decimal_price = utilities.convert_euro_prices(price)
-        self.assertEqual(decimal_price, D('2.00'))
+    def test_convert_string_prices_no_decimal(self):
+        prices = ['2.--€', '2.-- pуб.', '2.-- USD', '2.-- HK$']
+        prices += ['2.-€', '2.- pуб.', '2.- USD', '2.- HK$']
+        prices += ['2,--€', '2,-- pуб.', '2,-- USD', '2,-- HK$']
+        prices += ['2,-€', '2,-pуб.', '2,-USD', '2,-HK$']
+        for price in prices:
+            decimal_price = utilities.convert_string_prices(price)
+            self.assertEqual(decimal_price, D('2.00'))
 
-    def test_convert_euro_prices_with_space(self):
-        price = '2.31 €'
-        decimal_price = utilities.convert_euro_prices(price)
-        self.assertEqual(decimal_price, D('2.31'))
+    def test_convert_string_prices_with_space(self):
+        prices = ['2,31 €', '2,31 pуб.', '2,31 USD', '2,31 HK$']
+        prices += ['2.31 €', '2.31 pуб.', '2.31 USD', '2.31HK$']
+        for price in prices:
+            decimal_price = utilities.convert_string_prices(price)
+            self.assertEqual(decimal_price, D('2.31'))
+
+    def test_convert_string_prices_inverted(self):
+        prices = ['€ 2,31', 'pуб. 2,31', 'USD 2,31', 'HK$ 2,31']
+        prices += ['€ 2.31', 'pуб. 2.31', 'USD 2.31', 'HK$ 2.31']
+        for price in prices:
+            decimal_price = utilities.convert_string_prices(price)
+            self.assertEqual(decimal_price, D('2.31'))
+
 
     def test_get_steam_fees_object(self):
         price = D('0.03')
@@ -43,7 +59,6 @@ class Test(TestCase):
         price = D('588.31')
         fees = utilities.get_steam_fees_object(price)
         self.assertEqual(fees["you_receive"], 51159)
-        self.assertEqual(fees["money_to_ask"], 58831)
         self.assertEqual(fees["money_to_ask"], 58831)
         self.assertEqual(type(fees["you_receive"]), int)
         self.assertEqual(type(fees["money_to_ask"]), int)
@@ -251,7 +266,7 @@ class TestActions(TestCase):
         N_InInventory = 3
         N_NumberToSell = 5
         N_MarketListings = 2
-        ##Just list 3 more
+        # Just list 3 more
         actions = utilities.actions_to_make_list_delist(N_MarketListings,
                                                         MinPriceOfMyMarketListings,
                                                         N_NumberToSell,

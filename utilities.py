@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 decimal.getcontext().prec = 3
 
 
-def convert_euro_prices(price: str) -> decimal.Decimal:
+def convert_string_prices(price: str) -> decimal.Decimal:
     """
     Converts string to decimal price
     :param price: price as string
     :return: price as decimal.Decimal
     """
     price = str(price)
-    pattern = r'\D?(\d*)(\.|,)?(\d*)'
+    pattern = r'\D*(\d*)(\.|,)?(\d*)'
     tokens = re.search(pattern, price, re.UNICODE)
     decimal_str = tokens.group(1) + '.' + tokens.group(3)
     return decimal.Decimal(decimal_str)
@@ -74,6 +74,37 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'
     """
     decimal.getcontext().prec = 28
+
+    wallets = {"RU": {
+                    "wallet_fee": "1",
+                    "wallet_fee_base": "0",
+                    "wallet_fee_minimum": "1",
+                    "wallet_fee_percent": "0.05",
+                    "wallet_publisher_fee_percent_default": "0.10"
+                },
+               "EUR": {
+                   "wallet_fee": "1",
+                   "wallet_fee_base": "0",
+                   "wallet_fee_minimum": "1",
+                   "wallet_fee_percent": "0.05",
+                   "wallet_publisher_fee_percent_default": "0.10"
+               },
+               "USD": {
+                   "wallet_fee": "1",
+                   "wallet_fee_base": "0",
+                   "wallet_fee_minimum": "1",
+                   "wallet_fee_percent": "0.05",
+                   "wallet_publisher_fee_percent_default": "0.10"
+               },
+               "HK": {
+                   "wallet_fee": "1",
+                   "wallet_fee_base": "0",
+                   "wallet_fee_minimum": "1",
+                   "wallet_fee_percent": "0.05",
+                   "wallet_publisher_fee_percent_default": "0.10"
+               }
+
+               }
 
     def amount_to_send_desired_received_amt(price_inner: float) -> Dict[str, float]:
         """
@@ -216,10 +247,10 @@ def how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory):
 def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
     _priceData = steam_market.fetch_price(market_hash_name, game=GameOptions.CS, currency=Currency.EURO)
     try:
-        _priceData['lowest_price'] = convert_euro_prices(_priceData['lowest_price'])
-        _priceData['median_price'] = convert_euro_prices(_priceData['median_price'])
+        _priceData['lowest_price'] = convert_string_prices(_priceData['lowest_price'])
+        _priceData['median_price'] = convert_string_prices(_priceData['median_price'])
     except KeyError:
-        _priceData['lowest_price'] = convert_euro_prices(_priceData['lowest_price'])
+        _priceData['lowest_price'] = convert_string_prices(_priceData['lowest_price'])
         _priceData['median_price'] = 0
         # TODO Care about this. Don't like to set median price =0
     return max(_priceData['lowest_price'], _priceData['median_price']) - decimal.Decimal('0.01')
