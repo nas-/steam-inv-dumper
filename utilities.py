@@ -128,7 +128,7 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     return intfees
 
 
-# TODO refactor with PEP8.
+# TODO refactor with PEP8. Fix type hints.
 def actions_to_make_list_delist(N_MarketListings: int, MinPriceOfMyMarketListings: float, N_NumberToSell: int,
                                 N_InInventory: int, ItemSellingPrice: decimal.Decimal, minAllowedPrice: float) -> Dict:
     actions = {'delist': determine_delists(N_MarketListings, MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory,

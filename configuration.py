@@ -2,6 +2,11 @@ import json
 
 
 def load_config(config: str) -> dict:
+    """
+    Utility function to parse the config file specified.
+    :param config: Config path
+    :return: Parsed config file
+    """
     try:
         with open(config, 'r') as f:
             return json.loads(f.read())
