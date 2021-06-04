@@ -5,6 +5,8 @@ from typing import Callable
 import bs4
 import requests
 from backoff import expo, on_exception
+# pip install deckar01-ratelimit not pip install ratelimit
+# deckar01 contains persistance in fact
 from ratelimit import RateLimitException, limits
 from steampy.client import SteamClient
 from steampy.market import SteamMarket
@@ -25,8 +27,8 @@ class SteamLimited(SteamMarket):
         self._set_login_executed(steamguard, session_id)
 
     @on_exception(expo, RateLimitException, max_tries=8)
-    @limits(calls=1, period=3)
-    @limits(calls=15, period=60)
+    @limits(calls=1, period=3, storage='ratelimit.sqlite', name='short_range')
+    @limits(calls=15, period=60, storage='ratelimit.sqlite', name='hourly')
     def limiter_function(self, func):
         def new_func(*args, **kwargs):
             out = func(*args, **kwargs)

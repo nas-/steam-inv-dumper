@@ -1,0 +1,7 @@
+SQLAlchemy~=1.4.17
+pandas~=1.2.4
+steampy~=0.74
+beautifulsoup4~=4.9.3
+requests~=2.25.1
+backoff~=1.10.0
+deckar01-ratelimit
