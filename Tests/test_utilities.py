@@ -280,8 +280,6 @@ class TestActions(TestCase):
                                    'list': {'qty': 0, 'price': D('12.4')}})
         self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
 
-
-
     def test_delist_all_and_relist(self):
         # Ne ho 2 listati @ 1.80
         # 3 in inv, max on sale 5

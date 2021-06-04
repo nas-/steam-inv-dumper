@@ -24,10 +24,13 @@ items_to_sell = {
 
 
 class Exchange(object):
+    """
+    Class representing an exchange. In this case Steam Market.
+    """
+
     def __init__(self, config):
         decimal.getcontext().prec = 3
         self._config = load_config(config)
-        self._initialize_logging()
         self._initialize_database()
         self._prepare_markets()
 
@@ -60,18 +63,18 @@ class Exchange(object):
         else:
             init_db()
 
-    def dispatch_delists(self, item: str, toDelist: List) -> None:
+    def dispatch_delists(self, item: str, to_delist: List) -> None:
         """
         Delists specified items, and updates the DB accordingly.
         :param item: Item name
-        :param toDelist: list of dicts of items currently on sale which should be delisted.
+        :param to_delist: list of dicts of items currently on sale which should be delisted.
         :return: None
         """
         debug = self._config.get('debug', True)
-        if not toDelist:
+        if not to_delist:
             return
 
-        for item_id in toDelist:
+        for item_id in to_delist:
             if debug:
                 logger.debug(f'delist items. Debug is True. Updating database only')
                 logger.debug(f'{item} cancel_sell_order({str(item_id["listing_id"])}')
@@ -83,17 +86,17 @@ class Exchange(object):
             ItemSale.session.delete(record)
         ItemSale.session.flush()
 
-    def dispatch_sales(self, item: str, listItemsToSell: List):
+    def dispatch_sales(self, item: str, item_for_sale_list: List):
         """
         Creates items listing for every specified item.
         :param item:  Item name
-        :param listItemsToSell: List of Dicts containing items to sell, and their prices
+        :param item_for_sale_list: List of Dicts containing items to sell, and their prices
         :return:
         """
-        if not listItemsToSell:
+        if not item_for_sale_list:
             return
         debug = self._config.get('debug', True)
-        for element in listItemsToSell:
+        for element in item_for_sale_list:
             if debug:
                 logger.debug(f'{item} create_sell_order({str(element["assetsID"])} )'
                              f',money_to_receive={element["you_receive"]} buyer_pays {element["buyer_pays"]}')
@@ -108,11 +111,12 @@ class Exchange(object):
                 name=item,
                 buyer_pays=decimal.Decimal(element["buyer_pays"] / 100) + 0,
                 you_receive=decimal.Decimal(element["you_receive"] / 100) + 0,
-                account='nasil2nd'
+                account=f"{self._config['username']}"
             )
             ItemSale.session.add(for_db)
         ItemSale.session.flush()
 
+    # TODO possible to cache own items for some time?
     def get_own_items(self, game=GameOptions.CS) -> pd.DataFrame:
         """
         Gets *marketable* items in inventory for specified game
@@ -138,6 +142,7 @@ class Exchange(object):
         items = items[items['marketable'] == 1]
         return items
 
+    # TODO remove some unused columns and/or get rid of dataframe
     def get_own_listings(self) -> pd.DataFrame:
         """
         Gets all items currently listed on the market
@@ -187,17 +192,17 @@ class Exchange(object):
         listings_sell['you_receive'] = listings_sell['you_receive'].apply(utilities.convert_string_prices)
         return listings_sell
 
-    def update_sold_items(self, item: str, _ItemInInventory: pd.DataFrame, _ItemSaleListings: pd.DataFrame) -> None:
+    def update_sold_items(self, item: str, items_in_inventory: pd.DataFrame, items_sale_listings: pd.DataFrame) -> None:
         """
         Finds the items which are not in the inventory or on sale anymore, and update the database,
         setting them all as sold.
         :param item: item name
-        :param _ItemInInventory: dataframe containing all items of this kind in inventory
-        :param _ItemSaleListings: dataframe containing all items of this kind on sale
+        :param items_in_inventory: dataframe containing all items of this kind in inventory
+        :param items_sale_listings: dataframe containing all items of this kind on sale
         """
-        itemsPresent = list(_ItemInInventory['id']) + list(_ItemSaleListings['id'])
+        items_present = list(items_in_inventory['id']) + list(items_sale_listings['id'])
         items_in_db = ItemSale.query_ref(name=item).all()
-        elements_sold = [element for element in items_in_db if element.item_id not in itemsPresent]
+        elements_sold = [element for element in items_in_db if element.item_id not in items_present]
         if not elements_sold:
             logger.info('no elements are were sold. No need to update DB')
             return
@@ -206,47 +211,53 @@ class Exchange(object):
             element.sold = True
         ItemSale.session.flush()
 
-    def _initialize_logging(self):
-        setup_logging_pre()
-        setup_logging(1)
-
 
 def main_loop(exchange) -> None:
+    """
+    Takes an exchange and runs the CheckSold, update database, sell more items cycle.
+    """
     my_items: pd.DataFrame = exchange.get_own_items()
     listings_sell = exchange.get_own_listings()
 
     for item in items_to_sell:
-        _ItemSaleListings = listings_sell[listings_sell['market_hash_name'] == item]
-        _numberToSell = items_to_sell[item].get('quantity', 0)
-        _min_price = items_to_sell[item]['min_price']
-        _ItemInInventory = my_items[my_items['market_hash_name'] == item]
-        if _ItemSaleListings.empty:
-            _myListings_min_price = 0
-        else:
-            _myListings_min_price = _ItemSaleListings['buyer_pay'].min()
-
-        exchange.update_sold_items(item, _ItemInInventory, _ItemSaleListings)
+        # dataframes
+        item_on_sale_listings = listings_sell[listings_sell['market_hash_name'] == item]
+        items_in_inventory = my_items[my_items['market_hash_name'] == item]
+        min_price_already_on_sale = item_on_sale_listings['buyer_pay'].min()
+        # Update sales listings.
+        exchange.update_sold_items(item, items_in_inventory, item_on_sale_listings)
+        # define amounts
+        amount_in_inventory = items_in_inventory.shape[0]
+        amount_to_sell = items_to_sell[item].get('quantity', 0)
+        amount_on_sale = item_on_sale_listings.shape[0]
+        # define prices
         # TODO see if ItemSellingPrice,minAllowedPrice can be merged here into a single variable
+        min_allowed_price = items_to_sell[item]['min_price']
+        if item_on_sale_listings.empty:
+            min_price_already_on_sale = 0
         sellingPrice = utilities.get_item_price(exchange.steam_market, item)
-        actions = utilities.actions_to_make_list_delist(N_MarketListings=_ItemSaleListings.shape[0],
-                                                        N_InInventory=_ItemInInventory.shape[0],
-                                                        MinPriceOfMyMarketListings=_myListings_min_price,
+
+        actions = utilities.actions_to_make_list_delist(N_MarketListings=amount_on_sale,
+                                                        N_InInventory=amount_in_inventory,
+                                                        MinPriceOfMyMarketListings=min_price_already_on_sale,
                                                         ItemSellingPrice=sellingPrice,
-                                                        N_NumberToSell=_numberToSell,
-                                                        minAllowedPrice=_min_price)
+                                                        N_NumberToSell=amount_to_sell,
+                                                        minAllowedPrice=min_allowed_price)
         logger.info(f'{item}  {actions}')
 
         # Items to sell
         listItemsToSell = utilities.get_items_to_list(item, actions["list"]["qty"], actions["list"]["price"],
-                                                      _ItemInInventory)
+                                                      items_in_inventory)
         exchange.dispatch_sales(item, listItemsToSell)
 
         # Items to delete
-        listItemsToDeList = utilities.get_items_to_delist(item, actions["delist"]["qty"], _ItemSaleListings)
+        listItemsToDeList = utilities.get_items_to_delist(item, actions["delist"]["qty"], item_on_sale_listings)
         exchange.dispatch_delists(item, listItemsToDeList)
 
 
 if __name__ == '__main__':
+    setup_logging_pre()
+    setup_logging(1)
     exchange = Exchange('config.json')
     exchange.steam_client.get_wallet_balance_and_currency()
 

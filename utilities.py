@@ -128,9 +128,9 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     return intfees
 
 
+# TODO refactor with PEP8.
 def actions_to_make_list_delist(N_MarketListings: int, MinPriceOfMyMarketListings: float, N_NumberToSell: int,
                                 N_InInventory: int, ItemSellingPrice: decimal.Decimal, minAllowedPrice: float) -> Dict:
-    # TODO avoid this {'delist': {'qty': 1, 'price': Decimal('12.4')}, 'list': {'qty': 1, 'price': Decimal('12.4')}}
     actions = {'delist': determine_delists(N_MarketListings, MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory,
                                            ItemSellingPrice, minAllowedPrice)}
     N_MarketListings -= actions['delist']['qty']
@@ -191,6 +191,7 @@ def determine_delists(market_listings, min_price_market_listing, max_on_sale, to
     return {'qty': amount, 'price': price}
 
 
+# TODO remove unused parameter.
 def determine_lists(market_listings, min_price_market_listing, max_on_sale, tot_in_inventory, usual_price,
                     min_allowed_price):
     # Convertions
@@ -209,6 +210,7 @@ def determine_lists(market_listings, min_price_market_listing, max_on_sale, tot_
     return {'qty': amount, 'price': price}
 
 
+# TODO refactor with PEP8.
 def how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory):
     """
     How many items I can actually list on market to have N_NumberToSell on sale
@@ -224,13 +226,20 @@ def how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory):
         return 0
 
 
+# TODO make sure that currency is considered. To be looked more in details.
 def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
-    _priceData = steam_market.fetch_price(market_hash_name, game=GameOptions.CS, currency=Currency.EURO)
+    """
+    Gets the item price from Steam
+    :param steam_market: Instance of Steam Market.
+    :param market_hash_name: Market hash name.
+    :return: Decimal.
+    """
+    price_data = steam_market.fetch_price(market_hash_name, game=GameOptions.CS, currency=Currency.EURO)
     try:
-        _priceData['lowest_price'] = convert_string_prices(_priceData['lowest_price'])
-        _priceData['median_price'] = convert_string_prices(_priceData['median_price'])
+        price_data['lowest_price'] = convert_string_prices(price_data['lowest_price'])
+        price_data['median_price'] = convert_string_prices(price_data['median_price'])
     except KeyError:
-        _priceData['lowest_price'] = convert_string_prices(_priceData['lowest_price'])
-        _priceData['median_price'] = 0
+        price_data['lowest_price'] = convert_string_prices(price_data['lowest_price'])
+        price_data['median_price'] = 0
         # TODO Care about this. Don't like to set median price =0
-    return max(_priceData['lowest_price'], _priceData['median_price']) - decimal.Decimal('0.01')
+    return max(price_data['lowest_price'], price_data['median_price']) - decimal.Decimal('0.01')

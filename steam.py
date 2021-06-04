@@ -6,7 +6,7 @@ import bs4
 import requests
 from backoff import expo, on_exception
 # pip install deckar01-ratelimit not pip install ratelimit
-# deckar01 contains persistance in fact
+# deckar01 contains persistence in fact
 from ratelimit import RateLimitException, limits
 from steampy.client import SteamClient
 from steampy.market import SteamMarket
@@ -30,6 +30,10 @@ class SteamLimited(SteamMarket):
     @limits(calls=1, period=3, storage='ratelimit.sqlite', name='short_range')
     @limits(calls=15, period=60, storage='ratelimit.sqlite', name='hourly')
     def limiter_function(self, func):
+        """
+        Rate limit function. To understand if both the limits apply globally, or one is per account.
+        """
+
         def new_func(*args, **kwargs):
             out = func(*args, **kwargs)
             return out
@@ -37,6 +41,9 @@ class SteamLimited(SteamMarket):
         return new_func
 
     def __getattribute__(self, item: str) -> Callable:
+        """
+        "intercepts" the methods which call the steam market, and apply rate limits to them.
+        """
         attribute = super().__getattribute__(item)
         try:
             if (callable(attribute)) & (
@@ -52,16 +59,22 @@ class SteamLimited(SteamMarket):
 
 class SteamClientPatched(SteamClient):
     """
-    Patched steam Client class to provide to_picke and from_pickle functions
-    And properties to access session and sessionID
+    Patched steam Client class to provide to_pickle and from_pickle functions
+    And custom functions that are better than the ones provided by Steampy.
     """
 
     def to_pickle(self, filename):
+        """
+        Dumps the class to Pickle for easier re-logins.
+        """
         with open(filename, 'wb') as file:
             cpickle.dump(self, file)
 
     @classmethod
     def from_pickle(cls, filename):
+        """
+        Method to reload the class from its own pickle file
+        """
         try:
             with open(filename, 'rb') as file:
                 a = cpickle.load(file)
@@ -73,20 +86,29 @@ class SteamClientPatched(SteamClient):
             raise ValueError('The session files are corrupted or something.')
 
     @property
-    def session(self):
+    def session(self) -> requests.Session:
+        """
+        Return session used in steam
+        """
         return self._session
 
     @property
-    def session_id(self):
+    def session_id(self) -> str:
+        """
+        Return SessionID used by Steam
+        """
         return self._get_session_id()
 
-    def get_wallet_balance_and_currency(self):
+    def get_wallet_balance_and_currency(self) -> dict:
+        """
+        Returns wallet and balance in one request.
+        """
         url = SteamUrl.STORE_URL + '/account/history/'
         response = self._session.get(url)
         response_soup = bs4.BeautifulSoup(response.text, "html.parser")
         balance_string = response_soup.find(id='header_wallet_balance').string
 
         balance = convert_string_prices(balance_string)
-        choiches = {'pуб.': Currency.RUB, '€': Currency.EURO, 'USD': Currency.USD}
-        currency = [key for key in choiches if key in balance_string]
-        return {'amount': balance, 'currency': choiches.get(currency[0], '')}
+        choices = {'pуб.': Currency.RUB, '€': Currency.EURO, 'USD': Currency.USD}
+        currency = [key for key in choices if key in balance_string]
+        return {'amount': balance, 'currency': choices.get(currency[0], '')}
