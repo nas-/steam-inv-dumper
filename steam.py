@@ -5,6 +5,7 @@ from typing import Callable
 import bs4
 import requests
 from backoff import expo, on_exception
+# https://github.com/deckar01/ratelimit
 # pip install deckar01-ratelimit not pip install ratelimit
 # deckar01 contains persistence in fact
 from ratelimit import RateLimitException, limits
@@ -22,9 +23,10 @@ class SteamLimited(SteamMarket):
     Patched steam Market class to provide rate-limiting for requests to Steam.
     """
 
-    def __init__(self, session: requests.Session, steamguard: dict, session_id: str) -> None:
+    def __init__(self, session: requests.Session, steamguard: dict, session_id: str, currency: Currency) -> None:
         super().__init__(session)
         self._set_login_executed(steamguard, session_id)
+        self.currency = currency
 
     @on_exception(expo, RateLimitException, max_tries=8)
     @limits(calls=1, period=3, storage='ratelimit.sqlite', name='short_range')
@@ -63,6 +65,11 @@ class SteamClientPatched(SteamClient):
     And custom functions that are better than the ones provided by Steampy.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        balance, currency = self.get_wallet_balance_and_currency()
+        self.currency = currency
+
     def to_pickle(self, filename):
         """
         Dumps the class to Pickle for easier re-logins.
@@ -99,7 +106,7 @@ class SteamClientPatched(SteamClient):
         """
         return self._get_session_id()
 
-    def get_wallet_balance_and_currency(self) -> dict:
+    def get_wallet_balance_and_currency(self) -> tuple:
         """
         Returns wallet and balance in one request.
         """
@@ -111,4 +118,4 @@ class SteamClientPatched(SteamClient):
         balance = convert_string_prices(balance_string)
         choices = {'pуб.': Currency.RUB, '€': Currency.EURO, 'USD': Currency.USD}
         currency = [key for key in choices if key in balance_string]
-        return {'amount': balance, 'currency': choices.get(currency[0], '')}
+        return balance, choices.get(currency[0], '')

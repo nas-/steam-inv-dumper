@@ -8,6 +8,9 @@ init_db('sqlite:///sales_test.sqlite')
 
 
 class TestSteamDatabase(TestCase):
+    def tearDown(self) -> None:
+        # TODO delete the database
+        pass
 
     def test_select_all_ids(self):
         for_db = ItemSale(
@@ -38,7 +41,6 @@ class TestSteamDatabase(TestCase):
         ItemSale.session.delete(K)
         ItemSale.session.flush()
         self.assertEqual(ItemSale.query_ref(name='casekey1').all(), [])
-
 
 # test_db.query(write_query, list_of_fake_params)
 # results = test_db.query(read_query)

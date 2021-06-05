@@ -17,8 +17,9 @@ def convert_string_prices(price: str) -> decimal.Decimal:
     :param price: price as string
     :return: price as decimal.Decimal
     """
+    if not price:
+        return decimal.Decimal(0)
     price = str(price)
-
     pattern = r'\D*(\d*)(\.|,)?(\d*)'
 
     while True:
@@ -226,7 +227,6 @@ def how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory):
         return 0
 
 
-# TODO make sure that currency is considered. To be looked more in details.
 def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
     """
     Gets the item price from Steam
@@ -234,7 +234,7 @@ def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
     :param market_hash_name: Market hash name.
     :return: Decimal.
     """
-    price_data = steam_market.fetch_price(market_hash_name, game=GameOptions.CS, currency=Currency.EURO)
+    price_data = steam_market.fetch_price(market_hash_name, game=GameOptions.CS, currency=steam_market.currency)
     try:
         price_data['lowest_price'] = convert_string_prices(price_data['lowest_price'])
         price_data['median_price'] = convert_string_prices(price_data['median_price'])
@@ -243,3 +243,37 @@ def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
         price_data['median_price'] = 0
         # TODO Care about this. Don't like to set median price =0
     return max(price_data['lowest_price'], price_data['median_price']) - decimal.Decimal('0.01')
+
+
+class PriceOverview:
+    """Represents the data received from https://steamcommunity.com/market/priceoverview.
+    Attributes
+    -------------
+    currency: :class:`str`
+        The currency identifier for the item eg. "$" or "£".
+    volume: :class:`int`
+        The volume of last 24 hours.
+    lowest_price: :class:`decimal.Decimal`
+        The lowest price currently present on the market.
+    median_price: :class:`decimal.Decimal`
+        The median price observed by the market.
+    """
+    __slots__ = ("currency", "volume", "lowest_price", "median_price")
+
+    def __init__(self, data, currency):
+        lowest_price = data.get('lowest_price', '')
+        median_prince = data.get('median_price', '')
+        self.lowest_price = convert_string_prices(lowest_price)
+        self.median_price = convert_string_prices(median_prince)
+        self.volume = data.get('volume', 0)
+        self.currency = currency
+
+    def __repr__(self) -> str:
+        resolved = [f"{attr}={getattr(self, attr)!r}" for attr in self.__slots__]
+        return f"<PriceOverview {' '.join(resolved)}>"
+
+
+if __name__ == '__main__':
+    a = {"success": True}
+    c = PriceOverview(a, Currency.RUB)
+    print(c)

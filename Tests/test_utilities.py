@@ -8,6 +8,11 @@ import utilities
 
 
 class Test(TestCase):
+    def test_convert_empty_string(self):
+        price = ''
+        decimal_price = utilities.convert_string_prices(price)
+        self.assertEqual(decimal_price, D('0'))
+
     def test_convert_string_prices(self):
         prices = ['2,42€', '2,42pуб.', '2,42USD', '2,42HK$']
         prices += ['2.42€', '2.42pуб.', '2.42USD', '2.42HK$']

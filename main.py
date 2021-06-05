@@ -52,7 +52,7 @@ class Exchange(object):
             self.steam_client.to_pickle(self._config['username'])
 
         self.steam_market = SteamLimited(self.steam_client.session, self._config['steamguard'],
-                                         self.steam_client.session_id)
+                                         self.steam_client.session_id, self.steam_client.currency)
 
     def _initialize_database(self):
         debug = self._config.get('debug', True)
@@ -109,9 +109,12 @@ class Exchange(object):
                 item_id=element["assetsID"],
                 date=datetime.now(),
                 name=item,
+                sold=False,
+                quantity=1,
                 buyer_pays=decimal.Decimal(element["buyer_pays"] / 100) + 0,
                 you_receive=decimal.Decimal(element["you_receive"] / 100) + 0,
-                account=f"{self._config['username']}"
+                account=f"{self._config['username']}",
+                currency=self.steam_market.currency.name
             )
             ItemSale.session.add(for_db)
         ItemSale.session.flush()
@@ -235,6 +238,7 @@ def main_loop(exchange) -> None:
         min_allowed_price = items_to_sell[item]['min_price']
         if item_on_sale_listings.empty:
             min_price_already_on_sale = 0
+        # TODO make selling price an instance of PriceOverview
         sellingPrice = utilities.get_item_price(exchange.steam_market, item)
 
         actions = utilities.actions_to_make_list_delist(N_MarketListings=amount_on_sale,
@@ -259,7 +263,6 @@ if __name__ == '__main__':
     setup_logging_pre()
     setup_logging(1)
     exchange = Exchange('config.json')
-    exchange.steam_client.get_wallet_balance_and_currency()
 
     for i in range(0, 50):
         main_loop(exchange)
