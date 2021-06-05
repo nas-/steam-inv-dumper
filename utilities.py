@@ -34,13 +34,12 @@ def convert_string_prices(price: str) -> decimal.Decimal:
 def get_items_to_list(name: str, number: int, price: decimal.Decimal, inventory: DataFrame) -> List[Dict]:
     """
     Gets a list of length "number" of items in inventory to be put on sale
-    :param name: Name of item
+    :param name: market hash name of item
     :param number: Number of items to list.
-    :param price: price of items to list as Decimal.Decimal
+    :param price: money_to_ask of items to list as Decimal.Decimal
     :param inventory: Dataframe containing the inventory
-    :return:List of Dicts regarding items to sell.
+    :return:List of Dicts regarding items to sell. Prices are in cents.
     """
-    # TODO check what exactly is price.
     inventory = inventory[(inventory['market_hash_name'] == name) & (inventory['marketable'] == 1)]
     _assetsID = list(inventory['id'])
     prices = get_steam_fees_object(price)
@@ -58,7 +57,7 @@ def get_items_to_list(name: str, number: int, price: decimal.Decimal, inventory:
 def get_items_to_delist(name: str, number_to_remove: int, listings: DataFrame) -> List[Dict[str, str]]:
     """
     Gets a list of length "number" of items on sale to be removed from sale.
-    :param name: Name of item
+    :param name: market hash name of item
     :param number_to_remove: Number of items to remove.
     :param listings: Dataframe containing the listings.
     :return:List of Dicts regarding items to remove
@@ -75,9 +74,9 @@ def get_items_to_delist(name: str, number_to_remove: int, listings: DataFrame) -
 
 def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     """
-    Given a price, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
+    Given a price as Decimal, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
     :param price: Price for sale (money_to_ask)
-    :return: Dict of different prices (In cents).
+    :return: Dict of different prices - in cents.
     keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'
     """
     decimal.getcontext().prec = 28
@@ -241,7 +240,6 @@ def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
     except KeyError:
         price_data['lowest_price'] = convert_string_prices(price_data['lowest_price'])
         price_data['median_price'] = 0
-        # TODO Care about this. Don't like to set median price =0
     return max(price_data['lowest_price'], price_data['median_price']) - decimal.Decimal('0.01')
 
 

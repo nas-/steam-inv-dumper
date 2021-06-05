@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 _DECL_BASE: Any = declarative_base()
 _SQL_DOCS_URL = 'http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls'
 _DB_URL = 'sqlite:///sales.sqlite'
-#TODO make _DB url loadable from config.
-#TODO make so that cancelled orders show up in db.
+
+
+# TODO make so that cancelled orders show up in db.
 
 
 def init_db(db_url: str = _DB_URL) -> None:
@@ -28,6 +29,9 @@ def init_db(db_url: str = _DB_URL) -> None:
     :param db_url: Database to use
     :return: None
     """
+    if db_url is None:
+        db_url = _DB_URL
+
     kwargs = {}
 
     # Take care of thread ownership if in-memory db
@@ -71,7 +75,7 @@ class ItemSale(_DECL_BASE):
     decimal.getcontext().prec = 3
 
     __tablename__ = 'sales'
-    item_id = Column(Integer, nullable=False,primary_key=True)
+    item_id = Column(Integer, nullable=False, primary_key=True)
     date = Column(DateTime, nullable=False)
     name = Column(String, nullable=False)
     sold = Column(Boolean, nullable=False, default=False)

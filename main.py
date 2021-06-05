@@ -56,12 +56,13 @@ class Exchange(object):
 
     def _initialize_database(self):
         debug = self._config.get('debug', True)
+        db_url = self._config.get('db_url', True)
         if debug:
             init_db('sqlite:///sales_debug.sqlite')
             ItemSale.query.delete()
             ItemSale.session.flush()
         else:
-            init_db()
+            init_db(db_url)
 
     def dispatch_delists(self, item: str, to_delist: List) -> None:
         """
@@ -90,7 +91,7 @@ class Exchange(object):
         """
         Creates items listing for every specified item.
         :param item:  Item name
-        :param item_for_sale_list: List of Dicts containing items to sell, and their prices
+        :param item_for_sale_list: List of Dicts containing items to sell, and their prices, expressed as cents!
         :return:
         """
         if not item_for_sale_list:
