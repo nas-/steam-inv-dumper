@@ -119,3 +119,8 @@ class SteamClientPatched(SteamClient):
         choices = {'pуб.': Currency.RUB, '€': Currency.EURO, 'USD': Currency.USD}
         currency = [key for key in choices if key in balance_string]
         return balance, choices.get(currency[0], '')
+
+#TODO make function to get
+# https://steamcommunity.com/market/listings/730/{market_hash_name}/render/?query=&start=0&count=10&language=english&currency=3
+# and grab the inspect links, inspect them and catch low float stuff.
+
