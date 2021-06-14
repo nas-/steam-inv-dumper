@@ -1,26 +1,16 @@
 import logging
 import re
-import struct
-import const
+from floats_gc import const
 import vdf
 from csgo.client import CSGOClient
 from csgo.enums import ECsgoGCMsg
 from steam.client import SteamClient
+# pip install git+https://github.com/wearefair/protobuf-to-dict
+from protobuf_to_dict import protobuf_to_dict
 
-from floats_gc.float_utils import get_skin_data
+from floats_gc.float_utils import get_skin_data, parse_items_cdn
 
 logger = logging.getLogger("CSGO Worker")
-
-
-def parse_items_cdn(data):
-    lines = data.split('\n')
-    result = {}
-    for line in lines:
-        kv = line.split('=')
-        if len(kv) > 1:
-            result[kv[0]] = kv[1]
-
-    return result
 
 
 class CSGOWorker(object):
@@ -93,35 +83,9 @@ class CSGOWorker(object):
         :param iteminfo:
         :return:
         """
-        # checking iteminfo.killeatervalue gives 0(not null) even if item is not stattrack.
-        stattrak = 1 if 'killeatervalue' in str(iteminfo) else 0
-        killeatervalue = iteminfo.killeatervalue if stattrak == 1 else None
-
-        iteminfo_dict = {
-            'itemid': iteminfo.itemid,
-            'defindex': iteminfo.defindex,
-            'paintindex': iteminfo.paintindex,
-            'rarity': iteminfo.rarity,
-            'quality': iteminfo.quality,
-            'paintwear': iteminfo.paintwear,
-            'paintseed': iteminfo.paintseed,
-            'killeatervalue': killeatervalue,
-            'stickers': [{
-                'slot': sticker.slot,
-                'sticker_id': sticker.sticker_id,
-                'tint_id': sticker.tint_id,
-                'wear': sticker.wear
-            } for sticker in iteminfo.stickers],
-            'inventory': iteminfo.inventory,
-            'origin': iteminfo.origin}
-
-        floatvalue = struct.unpack('f', struct.pack('i', iteminfo.paintwear))[0]
-        if floatvalue:
-            iteminfo_dict['floatvalue'] = floatvalue
-        # A bit shit but whatever.
-        iteminfo = iteminfo_dict
 
         iteminfo = get_skin_data(iteminfo, self.items_game, self.csgo_english, self.items_game_cdn, self.schema)
+
         special = None
         if iteminfo['item_name'] == "Marble Fade":
             logger.info(f"found {iteminfo['item_name']=}")
@@ -153,7 +117,7 @@ class CSGOWorker(object):
 
     def _send(self, s: int, a: int, d: int, m: int):
         """
-        # Send the item to the game coordinator and return the response data in a dict
+        # Send the item to the game coordinator and return the response data without modifications.
         :param s:
         :param a:
         :param d:
@@ -173,7 +137,8 @@ class CSGOWorker(object):
             logger.info('CSGO failed to respond')
             raise TypeError
 
-        return resp[0].iteminfo
+        iteminfo = resp[0].iteminfo
+        return protobuf_to_dict(iteminfo)
 
     def from_inspect_link(self, url) -> dict:
         match = re.search(r'([SM])(\d+)A(\d+)D(\d+)$', url)
@@ -221,6 +186,6 @@ if __name__ == '__main__':
                  password='97Sxoz@^htWRKT$unc!i'),
 
     el1 = worker.from_inspect_link(
-        'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20S76561197964608834A22156537897D596947587724021939')
+        'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
 
     print(el1)

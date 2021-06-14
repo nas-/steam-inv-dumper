@@ -1,6 +1,11 @@
+import gevent.monkey
+gevent.monkey.patch_all()
+#see https://github.com/gevent/gevent/issues/1016#issuecomment-328529454
 import requests
 import vdf
-from worker import CSGOWorker
+
+from floats_gc.float_utils import parse_items_cdn
+from .worker import CSGOWorker
 
 ITEMS_GAME_URL = 'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/scripts/items/items_game.txt'
 CSGO_ENGLISH_URL = 'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/resource/csgo_english.txt'
@@ -9,7 +14,10 @@ SCHEMA_URL = 'https://raw.githubusercontent.com/SteamDatabase/SteamTracking/b5cb
 
 
 class FloatManager():
-    def __init__(self, bots):
+    def __init__(self, bots=None):
+        if bots is None:
+            bots = []
+        self.bots = bots
         self._retrieve_game_data()
         # TODO initialize bots
         # TODO make a sort of Queque for dispatching requests to workers.
@@ -25,16 +33,7 @@ class FloatManager():
         schema = requests.get(SCHEMA_URL)
         self.items_game = vdf.loads(items_game.text)['items_game']
         self.csgo_english = vdf.loads(csgo_english.text)['lang']['Tokens']
-        self.items_game_cdn = self.parse_items_cdn(items_game_cdn.text)
+        self.items_game_cdn = parse_items_cdn(items_game_cdn.text)
         self.schema = schema.json()['result']
 
-    @staticmethod
-    def parse_items_cdn(data):
-        lines = data.split('\n')
-        result = {}
-        for line in lines:
-            kv = line.split('=')
-            if len(kv) > 1:
-                result[kv[0]] = kv[1]
 
-        return result

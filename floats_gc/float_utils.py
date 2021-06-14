@@ -1,3 +1,5 @@
+import struct
+
 floatNames = [{'range': [0, 0.07],
                'name': 'SFUI_InvTooltip_Wear_Amount_0'}, {
                   'range': [0.07, 0.15],
@@ -20,6 +22,8 @@ def get_wear_name(floatvalue: float, csgo_english: dict) -> str:
     for categ in floatNames:
         if categ['range'][0] < floatvalue <= categ['range'][1]:
             return csgo_english[categ['name']]
+    # if weapon has no float return ''
+    return ''
 
 
 def get_full_item_name(iteminfo: dict, csgo_english: dict) -> str:
@@ -42,25 +46,30 @@ def get_full_item_name(iteminfo: dict, csgo_english: dict) -> str:
     name += f" {iteminfo['weapon_type']} "
 
     if iteminfo['weapon_type'] in ['Sticker', 'Sealed Graffiti']:
-        name += f" | {iteminfo['stickers'][0]['name']}"
+        name += f"| {iteminfo['stickers'][0]['name']}"
 
     # Vanilla items have an item_name of '-'
     if iteminfo["item_name"] and iteminfo["item_name"] != '-':
         name += f"| {iteminfo['item_name']} "
 
-    if iteminfo['wear_name']:
+    if iteminfo.get('wear_name') and iteminfo["item_name"] != '-':
         name += f"({iteminfo['wear_name']})"
 
     return name.strip()
 
 
 def get_skin_data(iteminfo: dict, items_game: dict, csgo_english: dict, items_game_cdn: dict, schema: dict) -> dict:
+    if iteminfo.get('paintwear'):
+        floatvalue = struct.unpack('f', struct.pack('i', iteminfo['paintwear']))[0]
+        if floatvalue:
+            iteminfo['floatvalue'] = floatvalue
+
     # Get sticker codename/name
     iteminfo['paintindex'] = str(iteminfo['paintindex'])
     iteminfo['defindex'] = str(iteminfo['defindex'])
 
     stickerKits = items_game['sticker_kits']
-    for sticker in iteminfo['stickers']:
+    for sticker in iteminfo.get('stickers', []):
         kit = stickerKits[str(sticker['sticker_id'])]
         if not kit:
             continue
@@ -70,7 +79,7 @@ def get_skin_data(iteminfo: dict, items_game: dict, csgo_english: dict, items_ga
         name = csgo_english[kit['item_name'].replace('#', '')]
         if sticker.get('tint_id'):
             attrib = f"Attrib_SprayTintValue_{sticker['tint_id']}"
-            name += f' {csgo_english[attrib]}'
+            name += f' ({csgo_english[attrib]})'
         if name:
             sticker['name'] = name
 
@@ -143,7 +152,7 @@ def get_skin_data(iteminfo: dict, items_game: dict, csgo_english: dict, items_ga
 
         # Assumes weapons always have a float above 0 and that other items don't
         # TODO: Improve weapon check if this isn't robust
-        if iteminfo['floatvalue'] > 0:
+        if iteminfo.get('floatvalue', 0) > 0:
             iteminfo['rarity_name'] = csgo_english[rarity['loc_key_weapon']]
         else:
             iteminfo['rarity_name'] = csgo_english[rarity['loc_key']]
@@ -166,7 +175,7 @@ def get_skin_data(iteminfo: dict, items_game: dict, csgo_english: dict, items_ga
         iteminfo['origin_name'] = origin['name']
 
     # Get the wear name
-    wearName = get_wear_name(iteminfo['floatvalue'], csgo_english)
+    wearName = get_wear_name(iteminfo.get('floatvalue', 0), csgo_english)
     if wearName:
         iteminfo['wear_name'] = wearName
 
@@ -174,3 +183,14 @@ def get_skin_data(iteminfo: dict, items_game: dict, csgo_english: dict, items_ga
     if itemName:
         iteminfo['full_item_name'] = itemName
     return iteminfo
+
+
+def parse_items_cdn(data):
+    lines = data.split('\n')
+    result = {}
+    for line in lines:
+        kv = line.split('=')
+        if len(kv) > 1:
+            result[kv[0]] = kv[1]
+
+    return result
