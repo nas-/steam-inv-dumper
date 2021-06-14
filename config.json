@@ -1,0 +1,18 @@
+{
+  "apikey": "6CD2756FFD4165F0AFAC17FF3AB81997",
+  "password": "m4mpleir4ny",
+  "steamguard": {
+    "identity_secret": "tuFqPfb0IJwkKcioF09l/P+rh3s=",
+    "shared_secret": "SOIFN6f0QcL7n9+XItFoA8M+8OQ=",
+    "steamid": "76561198042787444"
+  },
+  "username": "nasil2nd",
+  "use_cookies": true,
+  "debug": false,
+  "db_url": "sqlite:///sales.sqlite",
+  "floats": {
+    "retrieve_floats": true,
+      "float_accounts": [{"username": "nasdevtest", "password": "97Sxoz@^htWRKT$unc!i"}
+      ]
+  }
+}
