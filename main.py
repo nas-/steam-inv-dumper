@@ -12,7 +12,7 @@ import utilities
 from configuration import load_config
 from db.db import ItemSale, init_db
 from logger import setup_logging, setup_logging_pre
-from steam import SteamClientPatched, SteamLimited
+from steam_classes import SteamClientPatched, SteamLimited
 
 logger = logging.getLogger(__name__)
 

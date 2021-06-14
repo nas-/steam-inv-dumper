@@ -202,9 +202,13 @@ def determine_lists(market_listings, min_price_market_listing, max_on_sale, tot_
 
     amount = 0
     if canListMoreItems:
-        amount = min(tot_in_inventory, max_on_sale - market_listings)
+        amount = max_on_sale - market_listings
 
     price = max(usual_price, min_allowed_price)
+
+    if amount > tot_in_inventory:
+        amount = tot_in_inventory
+
     assert amount >= 0
     assert price >= min_allowed_price
     return {'qty': amount, 'price': price}
