@@ -1,9 +1,11 @@
 import logging
 import re
+import time
+
 from floats_gc import const
 import vdf
 from csgo.client import CSGOClient
-from csgo.enums import ECsgoGCMsg
+from csgo.enums import ECsgoGCMsg, EGCBaseClientMsg, GCConnectionStatus
 from steam.client import SteamClient
 # pip install git+https://github.com/wearefair/protobuf-to-dict
 from protobuf_to_dict import protobuf_to_dict
@@ -26,23 +28,78 @@ class CSGOWorker(object):
         self.request_method = ECsgoGCMsg.EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest
         self.response_method = ECsgoGCMsg.EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse
         self.logon_details = None
+        self._have_gc_session = False
+        self._in_csgo = False
 
-        @client.on('channel_secured')
+        @client.once('channel_secured')
         def send_login():
+            logger.critical('Send login')
             if client.relogin_available:
                 client.relogin()
             elif self.logon_details is not None:
                 client.login(**self.logon_details)
 
-        @client.on('logged_on')
+        @client.once('logged_on')
         def start_csgo():
-            logger.info('Logged into Steam')
+            logger.critical('Logged into Steam - start CSGO')
+            self._have_gc_session = True
             self.csgo.launch()
 
-        @cs.on('ready')
+        @cs.once('ready')
         def gc_ready():
-            logger.info('Launched CSGO')
+            logger.critical('Launched CSGO')
+            self._in_csgo = True
             pass
+
+        @client.on('disconnected')
+        def client_disconnected():
+            self._have_gc_session = False
+            logger.critical('Disconneced from GC')
+            if client.relogin_available:
+                client.relogin()
+            elif self.logon_details is not None:
+                client.login(**self.logon_details)
+            self.steam.wait_event('logged_on', 60)
+
+        @cs.on('connection_status')
+        def cs_connection_changed(changed):
+            logger.critical(f'Connection changed into {changed.name}')
+            if changed.name == 'NO_SESSION':
+                logger.critical(f'Launching CSGO again')
+                self.csgo.exit()
+                self.csgo.launch()
+                self.csgo.wait_event('ready', 60)
+
+    def _send(self, s: int, a: int, d: int, m: int):
+        """
+        # Send the item to the game coordinator and return the response data without modifications.
+        :param s:
+        :param a:
+        :param d:
+        :param m:
+        :return:
+        """
+        # Send heartbeath to check if sessions are alive?
+        logger.critical(f'Sending hearthbeat')
+        self.csgo.send(EGCBaseClientMsg.EMsgGCClientHello)
+        logger.critical(f'sent hearthbeat')
+        self.csgo.wait_event('csgo_welcome')
+        logger.critical(f'received event')
+
+        self.csgo.send(self.request_method, {
+            'param_s': s,
+            'param_a': a,
+            'param_d': d,
+            'param_m': m,
+        })
+        resp = self.csgo.wait_event(self.response_method, timeout=50)
+
+        if resp is None:
+            logger.info('CSGO failed to respond')
+            raise TypeError
+
+        iteminfo = resp[0].iteminfo
+        return protobuf_to_dict(iteminfo)
 
     def start(self, username: str, password: str, two_factor_code: str = None):
         """
@@ -60,7 +117,7 @@ class CSGOWorker(object):
         # self.steam.connect()
         self.steam.reconnect()
         self.steam.wait_event('logged_on', 60)
-        self.logon_details = None
+        # self.logon_details = None
         self.csgo.wait_event('ready', 60)
 
     # CLI login
@@ -115,31 +172,6 @@ class CSGOWorker(object):
         iteminfo = self._send(s, a, d, m)
         return self.parse_item_data(iteminfo)
 
-    def _send(self, s: int, a: int, d: int, m: int):
-        """
-        # Send the item to the game coordinator and return the response data without modifications.
-        :param s:
-        :param a:
-        :param d:
-        :param m:
-        :return:
-        """
-        self.csgo.send(self.request_method, {
-            'param_s': s,
-            'param_a': a,
-            'param_d': d,
-            'param_m': m,
-        })
-
-        resp = self.csgo.wait_event(self.response_method, timeout=1)
-
-        if resp is None:
-            logger.info('CSGO failed to respond')
-            raise TypeError
-
-        iteminfo = resp[0].iteminfo
-        return protobuf_to_dict(iteminfo)
-
     def from_inspect_link(self, url) -> dict:
         match = re.search(r'([SM])(\d+)A(\d+)D(\d+)$', url)
         if match.group(1) == 'S':
@@ -183,8 +215,13 @@ if __name__ == '__main__':
     logger.debug('starting')
     worker = CSGOWorker(items_game, csgo_english, items_game_cdn, schema)
     worker.start(username='nasdevtest1',
-                 password='97Sxoz@^htWRKT$unc!i'),
+                 password='97Sxoz@^htWRKT$unc!i')
 
+    el1 = worker.from_inspect_link(
+        'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
+
+    print(el1)
+    time.sleep(300)
     el1 = worker.from_inspect_link(
         'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
 
