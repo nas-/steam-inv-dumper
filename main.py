@@ -17,9 +17,9 @@ from steam_classes import SteamClientPatched, SteamLimited
 logger = logging.getLogger(__name__)
 
 items_to_sell = {
-    "CS:GO Weapon Case 2": {"quantity": 0, "min_price": 12.40},
-    'eSports 2013 Winter Case': {"quantity": 0,
-                                 "min_price": 5.00}
+    "CS:GO Weapon Case 2": {"quantity": 1, "min_price": 12.40},
+    'eSports 2013 Winter Case': {"quantity": 1,
+                                 "min_price": 10.00}
 }
 
 

@@ -5,3 +5,8 @@ beautifulsoup4~=4.9.3
 requests~=2.25.1
 backoff~=1.10.0
 deckar01-ratelimit
+
+vdf~=3.4
+csgo~=1.0.0
+steam~=1.2.0
+gevent~=21.1.2

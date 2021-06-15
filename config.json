@@ -12,7 +12,15 @@
   "db_url": "sqlite:///sales.sqlite",
   "floats": {
     "retrieve_floats": true,
-      "float_accounts": [{"username": "nasdevtest", "password": "97Sxoz@^htWRKT$unc!i"}
-      ]
+    "float_accounts": [
+      {
+        "username": "nasdevtest",
+        "password": "97Sxoz@^htWRKT$unc!i"
+      },
+      {
+        "username": "nasdevtest1",
+        "password": "97Sxoz@^htWRKT$unc!i"
+      }
+    ]
   }
 }

@@ -177,12 +177,12 @@ if __name__ == '__main__':
     schema = requests.get(schema_url).json()['result']
 
     logging.basicConfig(format="%(asctime)s | %(name)s | thread:%(thread)s | %(levelname)s | %(message)s",
-                        level=logging.INFO)
+                        level=logging.DEBUG)
     logger = logging.getLogger('CSGO GC API')
 
     logger.debug('starting')
     worker = CSGOWorker(items_game, csgo_english, items_game_cdn, schema)
-    worker.start(username='nasdevtest',
+    worker.start(username='nasdevtest1',
                  password='97Sxoz@^htWRKT$unc!i'),
 
     el1 = worker.from_inspect_link(
