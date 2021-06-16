@@ -17,7 +17,6 @@ from floats_gc.worker import CSGOWorker
 logger = logging.getLogger('__name__')
 
 curr_dir = os.path.dirname(__file__)
-print(os.path.join(curr_dir, 'items_game.json'))
 
 ITEMS_GAME_URL = 'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/scripts/items/items_game.txt'
 CSGO_ENGLISH_URL = 'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/resource/csgo_english.txt'
@@ -160,8 +159,23 @@ class FloatManager(object):
                 bot_list.append(bot)
         return cycle(bot_list)
 
-    def _retrieve_game_data(self, force_refresh):
-        if force_refresh:
+    def _retrieve_game_data(self, force_refresh):  # sourcery skip: last-if-guard
+        found_files = True
+        if not force_refresh:
+            try:
+                with open(os.path.join(curr_dir, 'items_game.json')) as json_file:
+                    self.items_game = json.load(json_file)
+                with open(os.path.join(curr_dir, 'csgo_english.json')) as json_file:
+                    self.csgo_english = json.load(json_file)
+                with open(os.path.join(curr_dir, 'items_game_cdn.jsonj')) as json_file:
+                    self.items_game_cdn = json.load(json_file)
+                with open(os.path.join(curr_dir, 'schema.json')) as json_file:
+                    self.schema = json.load(json_file)
+                logger.info('loaded files from disk')
+            except FileNotFoundError:
+                logger.info('files not found. Downloading')
+                found_files = False
+        if force_refresh or not found_files:
             items_game = requests.get(ITEMS_GAME_URL)
             csgo_english = requests.get(CSGO_ENGLISH_URL)
             items_game_cdn = requests.get(ITEMS_GAME_CDN_URL)
@@ -174,21 +188,11 @@ class FloatManager(object):
                 json.dump(self.items_game, outfile)
             with open(os.path.join(curr_dir, 'csgo_english.json'), 'w') as outfile:
                 json.dump(self.csgo_english, outfile)
-            with open(os.path.join(curr_dir, 'items_game_cdn.json'), 'w') as outfile:
+            with open(os.path.join(curr_dir, 'items_game_cdn.jsonj'), 'w') as outfile:
                 json.dump(self.items_game_cdn, outfile)
             with open(os.path.join(curr_dir, 'schema.json'), 'w') as outfile:
                 json.dump(self.schema, outfile)
             logger.info('Ended saving files.')
-        else:
-            with open(os.path.join(curr_dir, 'items_game.json')) as json_file:
-                self.items_game = json.load(json_file)
-            with open(os.path.join(curr_dir, 'csgo_english.json')) as json_file:
-                self.csgo_english = json.load(json_file)
-            with open(os.path.join(curr_dir, 'items_game_cdn.json')) as json_file:
-                self.items_game_cdn = json.load(json_file)
-            with open(os.path.join(curr_dir, 'schema.json')) as json_file:
-                self.schema = json.load(json_file)
-            logger.info('loaded files from disk')
 
 
 if __name__ == "__main__":
