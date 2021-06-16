@@ -4,8 +4,7 @@ import logging
 from typing import Any, Dict, Optional
 
 import sqlalchemy.types as types
-from sqlalchemy import (DECIMAL, Boolean, Column, DateTime, Integer, Numeric,
-                        String, create_engine)
+from sqlalchemy import (Boolean, Column, DateTime, Integer, String, create_engine)
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Query, scoped_session, sessionmaker
@@ -112,7 +111,7 @@ class ItemSale(_DECL_BASE):
             *filters
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.to_json())
 
 

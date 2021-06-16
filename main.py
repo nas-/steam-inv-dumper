@@ -232,26 +232,26 @@ def main_loop(exchange) -> None:
         exchange.update_sold_items(item, items_in_inventory, item_on_sale_listings)
         # define amounts
         amount_in_inventory = items_in_inventory.shape[0]
-        amount_to_sell = items_to_sell[item].get('quantity', 0)
+        amount_to_sell = int(items_to_sell[item].get('quantity', 0))
         amount_on_sale = item_on_sale_listings.shape[0]
         # define prices
-        # TODO see if ItemSellingPrice,minAllowedPrice can be merged here into a single variable
+        # TODO see if item_selling_price,min_allowed_price can be merged here into a single variable
         min_allowed_price = items_to_sell[item]['min_price']
         if item_on_sale_listings.empty:
             min_price_already_on_sale = 0
-        # TODO make selling price an instance of PriceOverview
+        # TODO make selling int_price an instance of PriceOverview
         sellingPrice = utilities.get_item_price(exchange.steam_market, item)
 
-        actions = utilities.actions_to_make_list_delist(N_MarketListings=amount_on_sale,
-                                                        N_InInventory=amount_in_inventory,
-                                                        MinPriceOfMyMarketListings=min_price_already_on_sale,
-                                                        ItemSellingPrice=sellingPrice,
-                                                        N_NumberToSell=amount_to_sell,
-                                                        minAllowedPrice=min_allowed_price)
+        actions = utilities.actions_to_make_list_delist(num_market_listings=amount_on_sale,
+                                                        num_in_inventory=amount_in_inventory,
+                                                        min_price_mark_listing=min_price_already_on_sale,
+                                                        item_selling_price=sellingPrice,
+                                                        num_to_sell=amount_to_sell,
+                                                        min_allowed_price=min_allowed_price)
         logger.info(f'{item}  {actions}')
 
         # Items to sell
-        listItemsToSell = utilities.get_items_to_list(item, actions["list"]["qty"], actions["list"]["price"],
+        listItemsToSell = utilities.get_items_to_list(item, actions["list"]["qty"], actions["list"]["int_price"],
                                                       items_in_inventory)
         exchange.dispatch_sales(item, listItemsToSell)
 

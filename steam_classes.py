@@ -31,12 +31,12 @@ class SteamLimited(SteamMarket):
     @on_exception(expo, RateLimitException, max_tries=8)
     @limits(calls=1, period=3, storage='ratelimit.sqlite', name='short_range')
     @limits(calls=15, period=60, storage='ratelimit.sqlite', name='hourly')
-    def limiter_function(self, func):
+    def limiter_function(self, func: Callable) -> Callable:
         """
         Rate limit function. To understand if both the limits apply globally, or one is per account.
         """
 
-        def new_func(*args, **kwargs):
+        def new_func(*args, **kwargs) -> Callable:
             out = func(*args, **kwargs)
             return out
 
@@ -67,10 +67,9 @@ class SteamClientPatched(SteamClient):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        balance, currency = self.get_wallet_balance_and_currency()
-        self.currency = currency
+        self.currency = None
 
-    def to_pickle(self, filename):
+    def to_pickle(self, filename) -> None:
         """
         Dumps the class to Pickle for easier re-logins.
         """
@@ -106,6 +105,11 @@ class SteamClientPatched(SteamClient):
         """
         return self._get_session_id()
 
+    def login(self, *args, **kwargs):
+        super(SteamClientPatched, self).login(*args, **kwargs)
+        balance, currency = self.get_wallet_balance_and_currency()
+        self.currency = currency
+
     def get_wallet_balance_and_currency(self) -> tuple:
         """
         Returns wallet and balance in one request.
@@ -120,7 +124,6 @@ class SteamClientPatched(SteamClient):
         currency = [key for key in choices if key in balance_string]
         return balance, choices.get(currency[0], '')
 
-#TODO make function to get
+# TODO make function to get
 # https://steamcommunity.com/market/listings/730/{market_hash_name}/render/?query=&start=0&count=10&language=english&currency=3
 # and grab the inspect links, inspect them and catch low float stuff.
-

@@ -1,18 +1,19 @@
 import json
+import logging
 import os
+from itertools import cycle
+from typing import Iterable
 
+import arrow
 import gevent.monkey
+import vdf
+
+from floats_gc.float_utils import parse_items_cdn
+from floats_gc.worker import CSGOWorker
 
 gevent.monkey.patch_all()
 # see https://github.com/gevent/gevent/issues/1016#issuecomment-328529454
 import requests
-import vdf
-import arrow
-from itertools import cycle
-import logging
-
-from floats_gc.float_utils import parse_items_cdn
-from floats_gc.worker import CSGOWorker
 
 logger = logging.getLogger('__name__')
 
@@ -127,7 +128,7 @@ links = [
 
 
 class FloatManager(object):
-    def __init__(self, bots_login=None, force_refresh=False):
+    def __init__(self, bots_login: list = None, force_refresh: bool = False) -> None:
         self._timeout = 2
         if bots_login is None:
             bots_login = []
@@ -135,13 +136,11 @@ class FloatManager(object):
         self._retrieve_game_data(force_refresh)
         self.workers = self._initialize_workers()
 
-        # TODO initialize bots
-        # TODO make a sort of Queque for dispatching requests to workers.
         # todo add tests
 
         # make a CSGOWorker per each bot.
 
-    def give_job(self, url):
+    def give_job(self, url: str):
         for bot in self.workers:
             if (
                     not bot.busy
@@ -150,7 +149,7 @@ class FloatManager(object):
                 logger.info(f'dispatched job to bot {bot.username}')
                 return bot.from_inspect_link(url)
 
-    def _initialize_workers(self):
+    def _initialize_workers(self) -> Iterable:
         bot_list = []
         if self._bots_login:
             for login in self._bots_login:
@@ -159,7 +158,7 @@ class FloatManager(object):
                 bot_list.append(bot)
         return cycle(bot_list)
 
-    def _retrieve_game_data(self, force_refresh):  # sourcery skip: last-if-guard
+    def _retrieve_game_data(self, force_refresh: bool) -> None:  # sourcery skip: last-if-guard
         found_files = True
         if not force_refresh:
             try:

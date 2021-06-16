@@ -1,5 +1,6 @@
 from unittest import TestCase
-from floats_gc.float_utils import get_skin_data, parse_items_cdn
+
+from floats_gc.float_utils import get_skin_data
 from floats_gc.worker_manager import FloatManager
 
 kara_marble_fn_ff1 = {'itemid': 22156537897, 'defindex': 507, 'paintindex': 413, 'rarity': 6, 'quality': 3,
@@ -38,7 +39,7 @@ fm = FloatManager()
 class TestCSGOWorker(TestCase):
     maxDiff = None
 
-    def test_parse_item_data(self):
+    def test_parse_item_data(self) -> None:
         data = get_skin_data(kara_marble_fn_ff1, fm.items_game, fm.csgo_english, fm.items_game_cdn, fm.schema)
 
         self.assertDictEqual(data, kara_marble_fn_ff1_parsed)

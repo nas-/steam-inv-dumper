@@ -8,7 +8,7 @@
   },
   "username": "nasil2nd",
   "use_cookies": true,
-  "debug": false,
+  "debug": true,
   "db_url": "sqlite:///sales.sqlite",
   "floats": {
     "retrieve_floats": true,

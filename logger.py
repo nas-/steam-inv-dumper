@@ -1,8 +1,8 @@
 import logging
 import sys
 from logging import Formatter
-from logging.handlers import (BufferingHandler, RotatingFileHandler,
-                              SysLogHandler)
+from logging.handlers import (BufferingHandler)
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 LOGFORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -35,7 +35,7 @@ def _set_loggers(verbosity: int = 0, api_verbosity: str = 'info') -> None:
     logging.getLogger('selenium.webdriver.remote.remote_connection').setLevel(logging.INFO)
 
 
-def get_existing_handlers(handlertype):
+def get_existing_handlers(handlertype) -> Optional[logging.Handler]:
     """
     Returns Existing handler or None (if the handler has not yet been added to the root handlers).
     """

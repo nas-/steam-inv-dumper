@@ -8,26 +8,26 @@ import utilities
 
 
 class Test(TestCase):
-    def test_convert_empty_string(self):
+    def test_convert_empty_string(self) -> None:
         price = ''
         decimal_price = utilities.convert_string_prices(price)
         self.assertEqual(decimal_price, D('0'))
 
-    def test_convert_string_prices(self):
+    def test_convert_string_prices(self) -> None:
         prices = ['2,42€', '2,42pуб.', '2,42USD', '2,42HK$']
         prices += ['2.42€', '2.42pуб.', '2.42USD', '2.42HK$']
         for price in prices:
             decimal_price = utilities.convert_string_prices(price)
             self.assertEqual(decimal_price, D('2.42'))
 
-    def test_convert_string_prices_point_in_between(self):
+    def test_convert_string_prices_point_in_between(self) -> None:
         prices = ['4,234.35 €', '4,234.35 pуб.', '4,234.35 USD']
         prices += ['pуб. 4,234.35 €', 'pуб.4,234.35 pуб.', '4,234.35 USD']
         for price in prices:
             decimal_price = utilities.convert_string_prices(price)
             self.assertEqual(decimal_price, D('4234.35'))
 
-    def test_convert_string_prices_no_decimal(self):
+    def test_convert_string_prices_no_decimal(self) -> None:
         prices = ['2.--€', '2.-- pуб.', '2.-- USD', '2.-- HK$']
         prices += ['2.-€', '2.- pуб.', '2.- USD', '2.- HK$']
         prices += ['2,--€', '2,-- pуб.', '2,-- USD', '2,-- HK$']
@@ -36,21 +36,21 @@ class Test(TestCase):
             decimal_price = utilities.convert_string_prices(price)
             self.assertEqual(decimal_price, D('2.00'))
 
-    def test_convert_string_prices_with_space(self):
+    def test_convert_string_prices_with_space(self) -> None:
         prices = ['2,31 €', '2,31 pуб.', '2,31 USD', '2,31 HK$']
         prices += ['2.31 €', '2.31 pуб.', '2.31 USD', '2.31HK$']
         for price in prices:
             decimal_price = utilities.convert_string_prices(price)
             self.assertEqual(decimal_price, D('2.31'))
 
-    def test_convert_string_prices_inverted(self):
+    def test_convert_string_prices_inverted(self) -> None:
         prices = ['€ 2,31', 'pуб. 2,31', 'USD 2,31', 'HK$ 2,31']
         prices += ['€ 2.31', 'pуб. 2.31', 'USD 2.31', 'HK$ 2.31']
         for price in prices:
             decimal_price = utilities.convert_string_prices(price)
             self.assertEqual(decimal_price, D('2.31'))
 
-    def test_get_steam_fees_object(self):
+    def test_get_steam_fees_object(self) -> None:
         price = D('0.03')
         fees = utilities.get_steam_fees_object(price)
         self.assertEqual(fees["you_receive"], 1)
@@ -58,7 +58,7 @@ class Test(TestCase):
         self.assertEqual(type(fees["you_receive"]), int)
         self.assertEqual(type(fees["money_to_ask"]), int)
 
-    def test_get_steam_fees_object_round_down_value(self):
+    def test_get_steam_fees_object_round_down_value(self) -> None:
         price = D('0.22')
         fees = utilities.get_steam_fees_object(price)
         self.assertEqual(fees["you_receive"], 19)
@@ -66,7 +66,7 @@ class Test(TestCase):
         self.assertEqual(type(fees["you_receive"]), int)
         self.assertEqual(type(fees["money_to_ask"]), int)
 
-    def test_get_steam_fees_object_high_value(self):
+    def test_get_steam_fees_object_high_value(self) -> None:
         price = D('588.31')
         fees = utilities.get_steam_fees_object(price)
         self.assertEqual(fees["you_receive"], 51159)
@@ -74,7 +74,7 @@ class Test(TestCase):
         self.assertEqual(type(fees["you_receive"]), int)
         self.assertEqual(type(fees["money_to_ask"]), int)
 
-    def test_get_list_items_to_list(self):
+    def test_get_list_items_to_list(self) -> None:
         test_df = pd.DataFrame(
             data={'market_hash_name': ['aaa', 'bbbb', 'aaa'], 'marketable': [1, 1, 0], "id": ['100', '200', '1000']})
         price = D(0.1)
@@ -83,7 +83,7 @@ class Test(TestCase):
         self.assertEqual(output[0]["you_receive"], utilities.get_steam_fees_object(price)["you_receive"])
         self.assertEqual(output[0]["buyer_pays"], utilities.get_steam_fees_object(price)["money_to_ask"])
 
-    def test_get_list_items_to_de_list(self):
+    def test_get_list_items_to_de_list(self) -> None:
         test_df = pd.DataFrame(
             data={'market_hash_name': ['aaa', 'bbbb', 'aaa'], "listing_id": ['100', '200', '1000'],
                   'id': ['desc1', 'desc2', 'desc3'], 'unowned_id': ['300', '200', '300', ]})
@@ -92,7 +92,7 @@ class Test(TestCase):
         self.assertEqual(output, [{'name': 'aaa', 'listing_id': '100', 'itemID': 'desc1', 'Unowned_itemID': '300'},
                                   {'name': 'aaa', 'listing_id': '1000', 'itemID': 'desc3', 'Unowned_itemID': '300'}])
 
-    def test_how_many_can_list(self):
+    def test_how_many_can_list(self) -> None:
         self.assertEqual(utilities.how_many_can_list(5, 5, 10), 0)
         self.assertEqual(utilities.how_many_can_list(1, 5, 10), 4)
         self.assertEqual(utilities.how_many_can_list(1, 0, 10), 0)
@@ -102,7 +102,7 @@ class TestActions(TestCase):
     def setUp(self) -> None:
         decimal.getcontext().prec = 3
 
-    def test_delists_price_lower_than_acceptable(self):
+    def test_delists_price_lower_than_acceptable(self) -> None:
         market_listings = 3
         min_price_market_listing = 2
         max_on_sale = 5
@@ -110,22 +110,22 @@ class TestActions(TestCase):
         usual_price = [1, 3, 4]
         min_allowed_price = [1, 3, 4]
 
-        # have 3 item on sale at price 2
+        # have 3 item on sale at int_price 2
         # can have max 5 on sale
-        # Usual price is 1
+        # Usual int_price is 1
         # min allowed is 1
 
         # result delist 3.
 
         delists = utilities.determine_delists(market_listings, min_price_market_listing, max_on_sale,
                                               tot_in_inventory[0], usual_price[0], min_allowed_price[0])
-        self.assertEqual(delists, {'qty': 3, 'price': D(2)})
+        self.assertEqual(delists, {'qty': 3, 'int_price': D(2)})
 
         delists = utilities.determine_delists(market_listings, min_price_market_listing, max_on_sale,
                                               tot_in_inventory[0], usual_price[0], min_allowed_price[1])
-        self.assertEqual(delists, {'qty': 3, 'price': D(2)})
+        self.assertEqual(delists, {'qty': 3, 'int_price': D(2)})
 
-    def test_make_delists(self):
+    def test_make_delists(self) -> None:
         market_listings = [1, 2, 3]
         min_price_market_listing = [1, 2, 3]
         max_on_sale = [0, 5, 50]
@@ -133,39 +133,39 @@ class TestActions(TestCase):
         usual_price = [1, 2, 3]
         min_allowed_price = [1, 2, 3]
 
-        # have 1 item on sale at price 1
+        # have 1 item on sale at int_price 1
         # can have max 0 on sale
         # result delist that
 
         delists = utilities.determine_delists(market_listings[0], min_price_market_listing[0], max_on_sale[0],
                                               tot_in_inventory[0], usual_price[0], min_allowed_price[0])
-        self.assertEqual(delists, {'qty': 1, 'price': D(1)})
+        self.assertEqual(delists, {'qty': 1, 'int_price': D(1)})
 
-        # have 1 item on sale at price 1
+        # have 1 item on sale at int_price 1
         # can have max 5 on sale, dont have any in inv.
-        # result do nothing,as i am lowest price already
+        # result do nothing,as i am lowest int_price already
 
         delists = utilities.determine_delists(market_listings[0], min_price_market_listing[0], max_on_sale[1],
                                               tot_in_inventory[0], usual_price[0], min_allowed_price[0])
-        self.assertEqual(delists, {'qty': 0, 'price': D(1)})
+        self.assertEqual(delists, {'qty': 0, 'int_price': D(1)})
 
-        # have 1 item on sale at price 1
+        # have 1 item on sale at int_price 1
         # can have max 5 on sale, dont have any in inv.
-        # Delist one, as min allowed price is 2
+        # Delist one, as min allowed int_price is 2
 
         delists = utilities.determine_delists(market_listings[0], min_price_market_listing[0], max_on_sale[1],
                                               tot_in_inventory[0], usual_price[0], min_allowed_price[1])
-        self.assertEqual(delists, {'qty': 1, 'price': D(1)})
+        self.assertEqual(delists, {'qty': 1, 'int_price': D(1)})
 
-        # have 1 item on sale at price 1
+        # have 1 item on sale at int_price 1
         # can have max 5 on sale, dont have any in inv.
-        # Delist one, as min allowed price is 2
+        # Delist one, as min allowed int_price is 2
 
         delists = utilities.determine_delists(market_listings[0], min_price_market_listing[2], max_on_sale[0],
                                               tot_in_inventory[0], usual_price[0], min_allowed_price[0])
-        self.assertEqual(delists, {'qty': 1, 'price': D(3)})
+        self.assertEqual(delists, {'qty': 1, 'int_price': D(3)})
 
-    def test_actions_to_make_list_delist(self):
+    def test_actions_to_make_list_delist(self) -> None:
         N_MarketListings = 5
         MinPriceOfMyMarketListings = 1.89
         N_NumberToSell = 12
@@ -179,11 +179,11 @@ class TestActions(TestCase):
                                                         ItemSellingPrice,
                                                         minAllowedPrice)
 
-        self.assertEqual(actions, {'delist': {'qty': 0, 'price': D('1.89')},
-                                   'list': {'qty': 5, 'price': D('1.80')}})
+        self.assertEqual(actions, {'delist': {'qty': 0, 'int_price': D('1.89')},
+                                   'list': {'qty': 5, 'int_price': D('1.80')}})
         self.assertTrue(N_MarketListings - actions['delist']['qty'] + actions['list']['qty'] <= N_NumberToSell)
 
-    def test_0_in_inv(self):
+    def test_0_in_inv(self) -> None:
         N_MarketListings = 5
         MinPriceOfMyMarketListings = 1.89
         N_NumberToSell = 12
@@ -196,11 +196,11 @@ class TestActions(TestCase):
                                                         N_InInventory,
                                                         ItemSellingPrice,
                                                         minAllowedPrice)
-        self.assertEqual(actions, {'delist': {'qty': 5, 'price': D('1.89')},
-                                   'list': {'qty': 0, 'price': D('1.8')}})
+        self.assertEqual(actions, {'delist': {'qty': 5, 'int_price': D('1.89')},
+                                   'list': {'qty': 0, 'int_price': D('1.8')}})
         self.assertTrue(N_MarketListings - actions['delist']['qty'] + actions['list']['qty'] <= N_NumberToSell)
 
-    def test_to_be_made_valid(self):
+    def test_to_be_made_valid(self) -> None:
         # Ne ho 5 listati @ 1.89
         # 5 in inv, max on sale 12
         # Prezzo usuale 1.80, minimo=1.75
@@ -219,11 +219,11 @@ class TestActions(TestCase):
                                                         usual_price,
                                                         min_allowed_price)
 
-        self.assertEqual(actions, {'delist': {'qty': 0, 'price': D('1.89')},
-                                   'list': {'qty': 5, 'price': D('1.80')}})
+        self.assertEqual(actions, {'delist': {'qty': 0, 'int_price': D('1.89')},
+                                   'list': {'qty': 5, 'int_price': D('1.80')}})
         self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
 
-    def test_listing_equals_on_sale(self):
+    def test_listing_equals_on_sale(self) -> None:
         # Ne ho 5 listati @ 1.89
         # 5 in inv, max on sale 5
         # Prezzo usuale 1.80, minimo=1.75
@@ -241,8 +241,8 @@ class TestActions(TestCase):
                                                         usual_price,
                                                         min_allowed_price)
 
-        self.assertEqual(actions, {'delist': {'qty': 5, 'price': D('1.89')},
-                                   'list': {'qty': 5, 'price': D('1.80')}})
+        self.assertEqual(actions, {'delist': {'qty': 5, 'int_price': D('1.89')},
+                                   'list': {'qty': 5, 'int_price': D('1.80')}})
         self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
 
         # Ne ho 8 listati @ 1.89
@@ -262,11 +262,11 @@ class TestActions(TestCase):
                                                         usual_price,
                                                         min_allowed_price)
 
-        self.assertEqual(actions, {'delist': {'qty': 8, 'price': D('1.89')},
-                                   'list': {'qty': 5, 'price': D('1.80')}})
+        self.assertEqual(actions, {'delist': {'qty': 8, 'int_price': D('1.89')},
+                                   'list': {'qty': 5, 'int_price': D('1.80')}})
         self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
 
-    def test_same_price(self):
+    def test_same_price(self) -> None:
         tot_in_inventory = 19
         market_listings = 1
         max_on_sale = 1
@@ -281,11 +281,11 @@ class TestActions(TestCase):
                                                         usual_price,
                                                         min_allowed_price)
 
-        self.assertEqual(actions, {'delist': {'qty': 0, 'price': D('12.4')},
-                                   'list': {'qty': 0, 'price': D('12.4')}})
+        self.assertEqual(actions, {'delist': {'qty': 0, 'int_price': D('12.4')},
+                                   'list': {'qty': 0, 'int_price': D('12.4')}})
         self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
 
-    def test_delist_all_and_relist(self):
+    def test_delist_all_and_relist(self) -> None:
         # Ne ho 2 listati @ 1.80
         # 3 in inv, max on sale 5
         # Prezzo usuale 1.80, minimo=1.80
@@ -303,7 +303,8 @@ class TestActions(TestCase):
                                                         N_InInventory,
                                                         ItemSellingPrice,
                                                         minAllowedPrice)
-        self.assertEqual(actions, {'delist': {'qty': 0, 'price': D('1.80')}, 'list': {'price': D('1.80'), 'qty': 3}})
+        self.assertEqual(actions,
+                         {'delist': {'qty': 0, 'int_price': D('1.80')}, 'list': {'int_price': D('1.80'), 'qty': 3}})
         self.assertTrue(N_MarketListings - actions['delist']['qty'] + actions['list']['qty'] <= N_NumberToSell)
 
         N_MarketListings = 10
@@ -320,11 +321,11 @@ class TestActions(TestCase):
                                                         minAllowedPrice)
 
         # Questo in realtà è giusto....
-        self.assertEqual(actions, {'delist': {'qty': 5, 'price': D('1.80')},
-                                   'list': {'qty': 0, 'price': D('1.80')}})
+        self.assertEqual(actions, {'delist': {'qty': 5, 'int_price': D('1.80')},
+                                   'list': {'qty': 0, 'int_price': D('1.80')}})
         self.assertTrue(N_MarketListings - actions['delist']['qty'] + actions['list']['qty'] <= N_NumberToSell)
 
-    def test_actions_to_make_list_delist_min_allowed_price(self):
+    def test_actions_to_make_list_delist_min_allowed_price(self) -> None:
         N_MarketListings = 5
         MinPriceOfMyMarketListings = 1.81
         N_NumberToSell = 12
@@ -337,5 +338,5 @@ class TestActions(TestCase):
                                                         N_InInventory,
                                                         ItemSellingPrice,
                                                         minAllowedPrice)
-        self.assertEqual(actions, {'delist': {'qty': 5, 'price': D('1.81')},
-                                   'list': {'qty': 5, 'price': D('12.0')}})
+        self.assertEqual(actions, {'delist': {'qty': 5, 'int_price': D('1.81')},
+                                   'list': {'qty': 5, 'int_price': D('12.0')}})

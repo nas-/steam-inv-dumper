@@ -13,9 +13,9 @@ decimal.getcontext().prec = 3
 
 def convert_string_prices(price: str) -> decimal.Decimal:
     """
-    Converts string to decimal price
-    :param price: price as string
-    :return: price as decimal.Decimal
+    Converts string to decimal int_price
+    :param price: int_price as string
+    :return: int_price as decimal.Decimal
     """
     if not price:
         return decimal.Decimal(0)
@@ -74,7 +74,7 @@ def get_items_to_delist(name: str, number_to_remove: int, listings: DataFrame) -
 
 def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     """
-    Given a price as Decimal, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
+    Given a int_price as Decimal, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
     :param price: Price for sale (money_to_ask)
     :return: Dict of different prices - in cents.
     keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'
@@ -97,17 +97,17 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
 
     iterations = 0
     bEverUndershot = False
-    price = int(price * 100)
-    nEstimatedAmountOfWalletFundsReceivedByOtherParty = round(price / (0.05 + 0.10 + 1), 0)
+    int_price = int(price * 100)
+    nEstimatedAmountOfWalletFundsReceivedByOtherParty = round(int_price / (0.05 + 0.10 + 1), 0)
     fees = amount_to_send_desired_received_amt(nEstimatedAmountOfWalletFundsReceivedByOtherParty)
-    while (fees['amount'] != price) & (iterations < 15):
-        if fees['amount'] > price:
+    while (fees['amount'] != int_price) & (iterations < 15):
+        if fees['amount'] > int_price:
             if bEverUndershot:
                 fees = amount_to_send_desired_received_amt(
                     nEstimatedAmountOfWalletFundsReceivedByOtherParty - 1)
-                fees['steam_fee'] += int((price - fees['amount']))
-                fees['fees'] += int((price - fees['amount']))
-                fees['amount'] = price
+                fees['steam_fee'] += int((int_price - fees['amount']))
+                fees['fees'] += int((int_price - fees['amount']))
+                fees['amount'] = int_price
                 break
             else:
                 nEstimatedAmountOfWalletFundsReceivedByOtherParty -= 1
@@ -129,21 +129,23 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
 
 
 # TODO refactor with PEP8. Fix type hints.
-def actions_to_make_list_delist(N_MarketListings: int, MinPriceOfMyMarketListings: float, N_NumberToSell: int,
-                                N_InInventory: int, ItemSellingPrice: decimal.Decimal, minAllowedPrice: float) -> Dict:
-    actions = {'delist': determine_delists(N_MarketListings, MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory,
-                                           ItemSellingPrice, minAllowedPrice)}
-    N_MarketListings -= actions['delist']['qty']
-    assert N_MarketListings >= 0
+def actions_to_make_list_delist(num_market_listings: int, min_price_mark_listing: float, num_to_sell: int,
+                                num_in_inventory: int, item_selling_price: decimal.Decimal,
+                                min_allowed_price: float) -> Dict:
+    actions = {'delist': determine_delists(num_market_listings, min_price_mark_listing, num_to_sell, num_in_inventory,
+                                           item_selling_price, min_allowed_price)}
+    num_market_listings -= actions['delist']['qty']
+    assert num_market_listings >= 0
 
-    actions['list'] = determine_lists(N_MarketListings, MinPriceOfMyMarketListings, N_NumberToSell, N_InInventory,
-                                      ItemSellingPrice, minAllowedPrice)
-    assert N_MarketListings + actions['list']['qty'] <= N_NumberToSell
+    actions['list'] = determine_lists(num_market_listings, num_to_sell, num_in_inventory, item_selling_price,
+                                      min_allowed_price)
+    assert num_market_listings + actions['list']['qty'] <= num_to_sell
     return actions
 
 
-def determine_delists(market_listings, min_price_market_listing, max_on_sale, tot_in_inventory, usual_price,
-                      min_allowed_price):
+def determine_delists(market_listings: int, min_price_market_listing: decimal.Decimal, max_on_sale: int,
+                      tot_in_inventory: int, usual_price: decimal.Decimal,
+                      min_allowed_price: decimal.Decimal) -> Dict:
     """
     Return delist actions
     :param market_listings:
@@ -173,7 +175,7 @@ def determine_delists(market_listings, min_price_market_listing, max_on_sale, to
     elif canListMoreItems:
         # I can list more from inv. No need for delists.
         if min_price_market_listing < min_allowed_price:
-            # My listings are lower than min allowed price
+            # My listings are lower than min allowed int_price
             amount = market_listings
         else:
             amount = 0
@@ -188,12 +190,12 @@ def determine_delists(market_listings, min_price_market_listing, max_on_sale, to
     if amount < 0:
         amount = 0
 
-    return {'qty': amount, 'price': price}
+    return {'qty': amount, 'int_price': price}
 
 
 # TODO remove unused parameter.
-def determine_lists(market_listings, min_price_market_listing, max_on_sale, tot_in_inventory, usual_price,
-                    min_allowed_price):
+def determine_lists(market_listings: int, max_on_sale: int, tot_in_inventory: int, usual_price: decimal.Decimal,
+                    min_allowed_price: decimal.Decimal) -> dict:
     # Convertions
     usual_price = decimal.Decimal(usual_price) + 0
     min_allowed_price = decimal.Decimal(min_allowed_price) + 0
@@ -211,28 +213,27 @@ def determine_lists(market_listings, min_price_market_listing, max_on_sale, tot_
 
     assert amount >= 0
     assert price >= min_allowed_price
-    return {'qty': amount, 'price': price}
+    return {'qty': amount, 'int_price': price}
 
 
-# TODO refactor with PEP8.
-def how_many_can_list(N_MarketListings, N_NumberToSell, N_InInventory):
+def how_many_can_list(num_market_listings, number_to_sell, num_in_inventory):
     """
-    How many items I can actually list on market to have N_NumberToSell on sale
-    :param N_MarketListings:
-    :param N_NumberToSell:
-    :param N_InInventory:
+    How many items I can actually list on market to have number_to_sell on sale
+    :param num_market_listings: Number of own listing on market.
+    :param number_to_sell: Max number on sale
+    :param num_in_inventory: Number in inventory
     :return: number that can be listed
     """
-    if N_NumberToSell > N_MarketListings:
-        toList = N_NumberToSell - N_MarketListings
-        return min(toList, N_InInventory)
-    elif N_NumberToSell == N_MarketListings or N_NumberToSell < N_MarketListings:
+    if number_to_sell > num_market_listings:
+        toList = number_to_sell - num_market_listings
+        return min(toList, num_in_inventory)
+    elif number_to_sell == num_market_listings or number_to_sell < num_market_listings:
         return 0
 
 
 def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
     """
-    Gets the item price from Steam
+    Gets the item int_price from Steam
     :param steam_market: Instance of Steam Market.
     :param market_hash_name: Market hash name.
     :return: Decimal.
@@ -247,6 +248,7 @@ def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
     return max(price_data['lowest_price'], price_data['median_price']) - decimal.Decimal('0.01')
 
 
+# Remove?
 class PriceOverview:
     """Represents the data received from https://steamcommunity.com/market/priceoverview.
     Attributes
@@ -256,13 +258,13 @@ class PriceOverview:
     volume: :class:`int`
         The volume of last 24 hours.
     lowest_price: :class:`decimal.Decimal`
-        The lowest price currently present on the market.
+        The lowest int_price currently present on the market.
     median_price: :class:`decimal.Decimal`
-        The median price observed by the market.
+        The median int_price observed by the market.
     """
     __slots__ = ("currency", "volume", "lowest_price", "median_price")
 
-    def __init__(self, data, currency):
+    def __init__(self, data: dict, currency: Currency):
         lowest_price = data.get('lowest_price', '')
         median_prince = data.get('median_price', '')
         self.lowest_price = convert_string_prices(lowest_price)

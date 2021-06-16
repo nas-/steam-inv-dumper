@@ -1,15 +1,16 @@
 import struct
+from typing import Dict, List
 
-floatNames = [{'range': [0, 0.07],
-               'name': 'SFUI_InvTooltip_Wear_Amount_0'}, {
-                  'range': [0.07, 0.15],
-                  'name': 'SFUI_InvTooltip_Wear_Amount_1'}, {
-                  'range': [0.15, 0.38],
-                  'name': 'SFUI_InvTooltip_Wear_Amount_2'}, {
-                  'range': [0.38, 0.45],
-                  'name': 'SFUI_InvTooltip_Wear_Amount_3'}, {
-                  'range': [0.45, 1.00],
-                  'name': 'SFUI_InvTooltip_Wear_Amount_4'}]
+FLOATNAMES: List[Dict] = [{'range': [0, 0.07],
+                           'name': 'SFUI_InvTooltip_Wear_Amount_0'}, {
+                              'range': [0.07, 0.15],
+                              'name': 'SFUI_InvTooltip_Wear_Amount_1'}, {
+                              'range': [0.15, 0.38],
+                              'name': 'SFUI_InvTooltip_Wear_Amount_2'}, {
+                              'range': [0.38, 0.45],
+                              'name': 'SFUI_InvTooltip_Wear_Amount_3'}, {
+                              'range': [0.45, 1.00],
+                              'name': 'SFUI_InvTooltip_Wear_Amount_4'}]
 
 
 def get_wear_name(floatvalue: float, csgo_english: dict) -> str:
@@ -19,7 +20,7 @@ def get_wear_name(floatvalue: float, csgo_english: dict) -> str:
     :param floatvalue: float value of the string, as float
     :return: Wear value, without parentesis
     """
-    for categ in floatNames:
+    for categ in FLOATNAMES:
         if categ['range'][0] < floatvalue <= categ['range'][1]:
             return csgo_english[categ['name']]
     # if weapon has no float return ''
@@ -151,7 +152,7 @@ def get_skin_data(iteminfo: dict, items_game: dict, csgo_english: dict, items_ga
         rarity = items_game['rarities'][rarityKey]
 
         # Assumes weapons always have a float above 0 and that other items don't
-        # TODO: Improve weapon check if this isn't robust
+        # Improve weapon check if this isn't robust
         if iteminfo.get('floatvalue', 0) > 0:
             iteminfo['rarity_name'] = csgo_english[rarity['loc_key_weapon']]
         else:
@@ -185,7 +186,7 @@ def get_skin_data(iteminfo: dict, items_game: dict, csgo_english: dict, items_ga
     return iteminfo
 
 
-def parse_items_cdn(data):
+def parse_items_cdn(data: str) -> dict:
     lines = data.split('\n')
     result = {}
     for line in lines:

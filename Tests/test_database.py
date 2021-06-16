@@ -12,7 +12,7 @@ class TestSteamDatabase(TestCase):
         # TODO delete the database
         pass
 
-    def test_select_all_ids(self):
+    def test_select_all_ids(self) -> None:
         for_db = ItemSale(
             item_id='12345',
             date=datetime.now(),

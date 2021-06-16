@@ -1,23 +1,24 @@
 import logging
 import re
 import time
-import arrow
 
-from floats_gc import const
+import arrow
 import vdf
 from csgo.client import CSGOClient
 from csgo.enums import ECsgoGCMsg, EGCBaseClientMsg, GCConnectionStatus
-from steam.client import SteamClient
 # pip install git+https://github.com/wearefair/protobuf-to-dict
 from protobuf_to_dict import protobuf_to_dict
+from steam.client import SteamClient
 
+from floats_gc import const
 from floats_gc.float_utils import get_skin_data, parse_items_cdn
 
 logger = logging.getLogger("CSGO Worker")
 
 
 class CSGOWorker(object):
-    def __init__(self, logon_details: dict, items_game, csgo_english, items_game_cdn, schema):
+    def __init__(self, logon_details: dict, items_game: dict, csgo_english: dict, items_game_cdn: dict,
+                 schema: dict) -> None:
         self.items_game = items_game
         self.csgo_english = csgo_english
         self.items_game_cdn = items_game_cdn
@@ -34,7 +35,7 @@ class CSGOWorker(object):
         self.last_run = arrow.now().timestamp()
 
         @client.once('channel_secured')
-        def send_login():
+        def send_login() -> None:
             logger.debug('Send login')
             if client.relogin_available:
                 client.relogin()
@@ -42,17 +43,17 @@ class CSGOWorker(object):
                 client.login(**self._logon_details)
 
         @client.once('logged_on')
-        def start_csgo():
+        def start_csgo() -> None:
             logger.debug('Logged into Steam - start CSGO')
             self.csgo.launch()
 
         @cs.once('ready')
-        def gc_ready():
+        def gc_ready() -> None:
             logger.debug('Launched CSGO')
             pass
 
         @client.on('disconnected')
-        def client_disconnected():
+        def client_disconnected() -> None:
             logger.info(f'Disconneced from GC')
             logger.debug(f'{client.connected=}')
             logger.debug(f'{client.connection.connected=}')
@@ -63,7 +64,7 @@ class CSGOWorker(object):
             self.steam.wait_event('logged_on', 60)
 
         @cs.on('connection_status')
-        def cs_connection_changed(changed):
+        def cs_connection_changed(changed: GCConnectionStatus) -> None:
             logger.info(f'Connection changed into {changed.name}')
             if changed.name == 'NO_SESSION':
                 logger.debug(f'Launching CSGO again')
@@ -71,7 +72,7 @@ class CSGOWorker(object):
                 self.csgo.launch()
                 self.csgo.wait_event('ready', 60)
 
-    def _send(self, s: int, a: int, d: int, m: int):
+    def _send(self, s: int, a: int, d: int, m: int) -> dict:
         """
         # Send the item to the game coordinator and return the response data without modifications.
         :param s:
@@ -101,7 +102,7 @@ class CSGOWorker(object):
         iteminfo = resp[0].iteminfo
         return protobuf_to_dict(iteminfo)
 
-    def start(self, username: str = None, password: str = None, two_factor_code: str = None):
+    def start(self, username: str = None, password: str = None, two_factor_code: str = None) -> None:
         """
         Starts the worker.Preferably, the accounts should not have steamguard both mobile and auth.
         :param username:
@@ -124,11 +125,11 @@ class CSGOWorker(object):
         self.busy = False
 
     # CLI login
-    def cli_login(self):
+    def cli_login(self) -> None:
         self.steam.cli_login()
         self.csgo.wait_event('ready', 60)
 
-    def close(self):
+    def close(self) -> None:
         """
         Closes the connection to steam.
         """
@@ -136,7 +137,7 @@ class CSGOWorker(object):
             self.steam.logout()
             logger.info('Logged out of Steam')
 
-    def parse_item_data(self, iteminfo) -> dict:
+    def parse_item_data(self, iteminfo: dict) -> dict:
         """
         # Lookup the weapon name/skin and special attributes. Return the relevant data formatted as JSON
         Iteminfo is proto returned by GC.
@@ -175,7 +176,7 @@ class CSGOWorker(object):
         iteminfo = self._send(s, a, d, m)
         return self.parse_item_data(iteminfo)
 
-    def from_inspect_link(self, url) -> dict:
+    def from_inspect_link(self, url: str) -> dict:
         logger.info(f'Retieving float value trugh account {self._logon_details.get("username")}')
         self.busy = True
         match = re.search(r'([SM])(\d+)A(\d+)D(\d+)$', url)
@@ -192,15 +193,15 @@ class CSGOWorker(object):
             iteminfo = self.get_item(s, a, d, m)
         except TypeError:
             logger.info('Failed response')
-            # TODO raise a proper exception maybe?
-            return 'Invalid link or Steam is slow.'
+            # TODO raise a proper exception maybe? Else add a status Success or Status Fail request.
+            return {'success': False, 'data': 'Invalid link or Steam is slow.'}
         finally:
             self.last_run = arrow.now().timestamp()
             self.busy = False
-        return iteminfo
+        return {'success': True, 'data': iteminfo}
 
     @property
-    def username(self):
+    def username(self) -> str:
         return self._logon_details.get('username', '')
 
 
@@ -213,7 +214,7 @@ if __name__ == '__main__':
         'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/resource/csgo_english.txt')
     z = requests.get(
         'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/scripts/items/items_game_cdn.txt')
-    schema_url = 'https://raw.githubusercontent.com/SteamDatabase/SteamTracking/b5cba7a22ab899d6d423380cff21cec707b7c947/ItemSchema/CounterStrikeGlobalOffensive.json';
+    schema_url = 'https://raw.githubusercontent.com/SteamDatabase/SteamTracking/b5cba7a22ab899d6d423380cff21cec707b7c947/ItemSchema/CounterStrikeGlobalOffensive.json'
     items_game = vdf.loads(k.text)['items_game']
     csgo_english = vdf.loads(y.text)['lang']['Tokens']
     items_game_cdn = parse_items_cdn(z.text)
@@ -224,15 +225,21 @@ if __name__ == '__main__':
     logger = logging.getLogger('__name__')
 
     logger.debug('starting')
-    worker = CSGOWorker(items_game, csgo_english, items_game_cdn, schema)
-    worker.start(username='nasdevtest1',
-                 password='97Sxoz@^htWRKT$unc!i')
+    logon_details = {'username': 'nasdevtest1',
+                     'password': '97Sxoz@^htWRKT$unc!i'}
+    worker = CSGOWorker(logon_details, items_game, csgo_english, items_game_cdn, schema)
+    worker.start()
 
     el1 = worker.from_inspect_link(
         'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
 
     print(el1)
     time.sleep(300)
+    el1 = worker.from_inspect_link(
+        'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
+
+    print(el1)
+
     el1 = worker.from_inspect_link(
         'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
 
