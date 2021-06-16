@@ -10,6 +10,16 @@
   "use_cookies": true,
   "debug": true,
   "db_url": "sqlite:///sales.sqlite",
+  "items_to_sell": {
+    "CS:GO Weapon Case 2": {
+      "quantity": 1,
+      "min_price": 12.40
+    },
+    "eSports 2013 Winter Case": {
+      "quantity": 1,
+      "min_price": 10.00
+    }
+  },
   "floats": {
     "retrieve_floats": true,
     "float_accounts": [

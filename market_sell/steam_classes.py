@@ -13,7 +13,7 @@ from steampy.client import SteamClient
 from steampy.market import SteamMarket
 from steampy.models import Currency, SteamUrl
 
-from utilities import convert_string_prices
+from .utilities import convert_string_prices
 
 logger = logging.getLogger(__name__)
 

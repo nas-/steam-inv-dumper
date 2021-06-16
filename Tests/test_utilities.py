@@ -4,7 +4,7 @@ from unittest import TestCase
 
 import pandas as pd
 
-import utilities
+from market_sell import utilities
 
 
 class Test(TestCase):
@@ -107,7 +107,7 @@ class TestActions(TestCase):
         min_price_market_listing = 2
         max_on_sale = 5
         tot_in_inventory = [0, 5, 10]
-        usual_price = [1, 3, 4]
+        usual_price = [D(1), D(3), D(4)]
         min_allowed_price = [1, 3, 4]
 
         # have 3 item on sale at int_price 2
@@ -130,7 +130,7 @@ class TestActions(TestCase):
         min_price_market_listing = [1, 2, 3]
         max_on_sale = [0, 5, 50]
         tot_in_inventory = [0, 5, 10]
-        usual_price = [1, 2, 3]
+        usual_price = [D(1), D(2), D(3)]
         min_allowed_price = [1, 2, 3]
 
         # have 1 item on sale at int_price 1
@@ -209,7 +209,7 @@ class TestActions(TestCase):
         min_price_market_listing = 1.89
         max_on_sale = 12
         tot_in_inventory = 5
-        usual_price = 1.80
+        usual_price = D(1.80)
         min_allowed_price = 1.75
 
         actions = utilities.actions_to_make_list_delist(market_listings,
