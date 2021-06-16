@@ -1,6 +1,7 @@
 import logging
 import re
 import time
+import arrow
 
 from floats_gc import const
 import vdf
@@ -16,7 +17,7 @@ logger = logging.getLogger("CSGO Worker")
 
 
 class CSGOWorker(object):
-    def __init__(self, items_game, csgo_english, items_game_cdn, schema):
+    def __init__(self, logon_details: dict, items_game, csgo_english, items_game_cdn, schema):
         self.items_game = items_game
         self.csgo_english = csgo_english
         self.items_game_cdn = items_game_cdn
@@ -27,45 +28,45 @@ class CSGOWorker(object):
 
         self.request_method = ECsgoGCMsg.EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest
         self.response_method = ECsgoGCMsg.EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse
-        self.logon_details = None
-        self._have_gc_session = False
-        self._in_csgo = False
+        self._logon_details = dict(logon_details)
+        self.busy = True
+        self.logged_in = False
+        self.last_run = arrow.now().timestamp()
 
         @client.once('channel_secured')
         def send_login():
-            logger.critical('Send login')
+            logger.debug('Send login')
             if client.relogin_available:
                 client.relogin()
-            elif self.logon_details is not None:
-                client.login(**self.logon_details)
+            elif self._logon_details is not None:
+                client.login(**self._logon_details)
 
         @client.once('logged_on')
         def start_csgo():
-            logger.critical('Logged into Steam - start CSGO')
-            self._have_gc_session = True
+            logger.debug('Logged into Steam - start CSGO')
             self.csgo.launch()
 
         @cs.once('ready')
         def gc_ready():
-            logger.critical('Launched CSGO')
-            self._in_csgo = True
+            logger.debug('Launched CSGO')
             pass
 
         @client.on('disconnected')
         def client_disconnected():
-            self._have_gc_session = False
-            logger.critical('Disconneced from GC')
+            logger.info(f'Disconneced from GC')
+            logger.debug(f'{client.connected=}')
+            logger.debug(f'{client.connection.connected=}')
             if client.relogin_available:
                 client.relogin()
-            elif self.logon_details is not None:
-                client.login(**self.logon_details)
+            elif self._logon_details is not None:
+                client.login(**self._logon_details)
             self.steam.wait_event('logged_on', 60)
 
         @cs.on('connection_status')
         def cs_connection_changed(changed):
-            logger.critical(f'Connection changed into {changed.name}')
+            logger.info(f'Connection changed into {changed.name}')
             if changed.name == 'NO_SESSION':
-                logger.critical(f'Launching CSGO again')
+                logger.debug(f'Launching CSGO again')
                 self.csgo.exit()
                 self.csgo.launch()
                 self.csgo.wait_event('ready', 60)
@@ -80,11 +81,10 @@ class CSGOWorker(object):
         :return:
         """
         # Send heartbeath to check if sessions are alive?
-        logger.critical(f'Sending hearthbeat')
+        logger.debug(f'Sending hearthbeat')
         self.csgo.send(EGCBaseClientMsg.EMsgGCClientHello)
-        logger.critical(f'sent hearthbeat')
         self.csgo.wait_event('csgo_welcome')
-        logger.critical(f'received event')
+        logger.debug(f'received event')
 
         self.csgo.send(self.request_method, {
             'param_s': s,
@@ -101,24 +101,27 @@ class CSGOWorker(object):
         iteminfo = resp[0].iteminfo
         return protobuf_to_dict(iteminfo)
 
-    def start(self, username: str, password: str, two_factor_code: str = None):
+    def start(self, username: str = None, password: str = None, two_factor_code: str = None):
         """
         Starts the worker.Preferably, the accounts should not have steamguard both mobile and auth.
         :param username:
         :param password:
         :param two_factor_code:
         """
-        self.logon_details = {
-            'username': username,
-            'password': password,
-            'two_factor_code': two_factor_code
-        }
+        if username:
+            self._logon_details['username'] = username
+        if password:
+            self._logon_details['password'] = password
+        if two_factor_code:
+            self._logon_details['two_factor_code'] = two_factor_code
 
         # self.steam.connect()
         self.steam.reconnect()
         self.steam.wait_event('logged_on', 60)
-        # self.logon_details = None
+        # self._logon_details = None
         self.csgo.wait_event('ready', 60)
+        self.logged_in = True
+        self.busy = False
 
     # CLI login
     def cli_login(self):
@@ -173,6 +176,8 @@ class CSGOWorker(object):
         return self.parse_item_data(iteminfo)
 
     def from_inspect_link(self, url) -> dict:
+        logger.info(f'Retieving float value trugh account {self._logon_details.get("username")}')
+        self.busy = True
         match = re.search(r'([SM])(\d+)A(\d+)D(\d+)$', url)
         if match.group(1) == 'S':
             s = int(match.group(2))
@@ -189,8 +194,14 @@ class CSGOWorker(object):
             logger.info('Failed response')
             # TODO raise a proper exception maybe?
             return 'Invalid link or Steam is slow.'
-
+        finally:
+            self.last_run = arrow.now().timestamp()
+            self.busy = False
         return iteminfo
+
+    @property
+    def username(self):
+        return self._logon_details.get('username', '')
 
 
 if __name__ == '__main__':
@@ -210,7 +221,7 @@ if __name__ == '__main__':
 
     logging.basicConfig(format="%(asctime)s | %(name)s | thread:%(thread)s | %(levelname)s | %(message)s",
                         level=logging.DEBUG)
-    logger = logging.getLogger('CSGO GC API')
+    logger = logging.getLogger('__name__')
 
     logger.debug('starting')
     worker = CSGOWorker(items_game, csgo_english, items_game_cdn, schema)

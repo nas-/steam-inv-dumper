@@ -1,8 +1,6 @@
 from unittest import TestCase
 from floats_gc.float_utils import get_skin_data, parse_items_cdn
 from floats_gc.worker_manager import FloatManager
-import requests
-import vdf
 
 kara_marble_fn_ff1 = {'itemid': 22156537897, 'defindex': 507, 'paintindex': 413, 'rarity': 6, 'quality': 3,
                       'paintwear': 1024596584, 'paintseed': 412, 'inventory': 72, 'origin': 8}
