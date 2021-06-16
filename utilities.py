@@ -143,9 +143,9 @@ def actions_to_make_list_delist(num_market_listings: int, min_price_mark_listing
     return actions
 
 
-def determine_delists(market_listings: int, min_price_market_listing: decimal.Decimal, max_on_sale: int,
+def determine_delists(market_listings: int, min_price_market_listing: float, max_on_sale: int,
                       tot_in_inventory: int, usual_price: decimal.Decimal,
-                      min_allowed_price: decimal.Decimal) -> Dict:
+                      min_allowed_price: float) -> Dict:
     """
     Return delist actions
     :param market_listings:
@@ -157,24 +157,24 @@ def determine_delists(market_listings: int, min_price_market_listing: decimal.De
     """
 
     # Convertions
-    min_price_market_listing = decimal.Decimal(min_price_market_listing) + 0
+    min_price_market_listing_decimal = decimal.Decimal(min_price_market_listing) + 0
     usual_price = decimal.Decimal(usual_price) + 0
-    min_allowed_price = decimal.Decimal(min_allowed_price) + 0
+    min_allowed_price_decimal = decimal.Decimal(min_allowed_price) + 0
 
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
-    imLowesPrice = usual_price >= min_price_market_listing >= min_allowed_price
+    imLowesPrice = usual_price >= min_price_market_listing_decimal >= min_allowed_price_decimal
 
-    price = min_price_market_listing
+    price = min_price_market_listing_decimal
     if market_listings == 0:
         amount = 0
     elif max_on_sale == 0:
         amount = market_listings
-    elif price == min_allowed_price:
+    elif price == min_allowed_price_decimal:
         # Returns more than 0 if I have more than allowed listings.
         amount = max(0, market_listings - max_on_sale)
     elif canListMoreItems:
         # I can list more from inv. No need for delists.
-        if min_price_market_listing < min_allowed_price:
+        if min_price_market_listing_decimal < min_allowed_price_decimal:
             # My listings are lower than min allowed int_price
             amount = market_listings
         else:
@@ -193,12 +193,11 @@ def determine_delists(market_listings: int, min_price_market_listing: decimal.De
     return {'qty': amount, 'int_price': price}
 
 
-# TODO remove unused parameter.
 def determine_lists(market_listings: int, max_on_sale: int, tot_in_inventory: int, usual_price: decimal.Decimal,
-                    min_allowed_price: decimal.Decimal) -> dict:
+                    min_allowed_price: float) -> dict:
     # Convertions
     usual_price = decimal.Decimal(usual_price) + 0
-    min_allowed_price = decimal.Decimal(min_allowed_price) + 0
+    min_allowed_price_decimal = decimal.Decimal(min_allowed_price) + 0
 
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
 
@@ -206,17 +205,17 @@ def determine_lists(market_listings: int, max_on_sale: int, tot_in_inventory: in
     if canListMoreItems:
         amount = max_on_sale - market_listings
 
-    price = max(usual_price, min_allowed_price)
+    price = max(usual_price, min_allowed_price_decimal)
 
     if amount > tot_in_inventory:
         amount = tot_in_inventory
 
     assert amount >= 0
-    assert price >= min_allowed_price
+    assert price >= min_allowed_price_decimal
     return {'qty': amount, 'int_price': price}
 
 
-def how_many_can_list(num_market_listings, number_to_sell, num_in_inventory):
+def how_many_can_list(num_market_listings: int, number_to_sell: int, num_in_inventory: int) -> int:
     """
     How many items I can actually list on market to have number_to_sell on sale
     :param num_market_listings: Number of own listing on market.
@@ -229,6 +228,7 @@ def how_many_can_list(num_market_listings, number_to_sell, num_in_inventory):
         return min(toList, num_in_inventory)
     elif number_to_sell == num_market_listings or number_to_sell < num_market_listings:
         return 0
+    return 0
 
 
 def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:

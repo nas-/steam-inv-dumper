@@ -28,13 +28,13 @@ class Exchange(object):
     Class representing an exchange. In this case Steam Market.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: str):
         decimal.getcontext().prec = 3
         self._config = load_config(config)
         self._initialize_database()
         self._prepare_markets()
 
-    def _prepare_markets(self):
+    def _prepare_markets(self) -> None:
         if self._config.get('use_cookies', False):
             try:
                 self.steam_client = SteamClientPatched.from_pickle(self._config['username'])
@@ -54,7 +54,7 @@ class Exchange(object):
         self.steam_market = SteamLimited(self.steam_client.session, self._config['steamguard'],
                                          self.steam_client.session_id, self.steam_client.currency)
 
-    def _initialize_database(self):
+    def _initialize_database(self) -> None:
         debug = self._config.get('debug', True)
         db_url = self._config.get('db_url', True)
         if debug:
@@ -87,7 +87,7 @@ class Exchange(object):
             ItemSale.session.delete(record)
         ItemSale.session.flush()
 
-    def dispatch_sales(self, item: str, item_for_sale_list: List):
+    def dispatch_sales(self, item: str, item_for_sale_list: List) -> None:
         """
         Creates items listing for every specified item.
         :param item:  Item name
@@ -121,7 +121,7 @@ class Exchange(object):
         ItemSale.session.flush()
 
     # TODO possible to cache own items for some time?
-    def get_own_items(self, game=GameOptions.CS) -> pd.DataFrame:
+    def get_own_items(self, game: GameOptions = GameOptions.CS) -> pd.DataFrame:
         """
         Gets *marketable* items in inventory for specified game
         :param game: defaults CSGO
@@ -216,7 +216,7 @@ class Exchange(object):
         ItemSale.session.flush()
 
 
-def main_loop(exchange) -> None:
+def main_loop(exchange: Exchange) -> None:
     """
     Takes an exchange and runs the CheckSold, update database, sell more items cycle.
     """
@@ -235,7 +235,7 @@ def main_loop(exchange) -> None:
         amount_to_sell = int(items_to_sell[item].get('quantity', 0))
         amount_on_sale = item_on_sale_listings.shape[0]
         # define prices
-        # TODO see if item_selling_price,min_allowed_price can be merged here into a single variable
+        # TODO see if item_selling_price,min_allowed_price_decimal can be merged here into a single variable
         min_allowed_price = items_to_sell[item]['min_price']
         if item_on_sale_listings.empty:
             min_price_already_on_sale = 0

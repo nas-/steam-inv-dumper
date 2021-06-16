@@ -69,7 +69,7 @@ class SteamClientPatched(SteamClient):
         super().__init__(*args, **kwargs)
         self.currency = None
 
-    def to_pickle(self, filename) -> None:
+    def to_pickle(self, filename: str) -> None:
         """
         Dumps the class to Pickle for easier re-logins.
         """
@@ -105,7 +105,7 @@ class SteamClientPatched(SteamClient):
         """
         return self._get_session_id()
 
-    def login(self, *args, **kwargs):
+    def login(self, *args, **kwargs) -> None:
         super(SteamClientPatched, self).login(*args, **kwargs)
         balance, currency = self.get_wallet_balance_and_currency()
         self.currency = currency
