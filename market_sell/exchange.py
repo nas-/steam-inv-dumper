@@ -22,7 +22,8 @@ class Exchange(object):
 
     def __init__(self, config: dict):
         # todo make _heartbeat_interval loadable from config.
-        decimal.getcontext().prec = 3
+        # TWOPLACES = Decimal(10) ** -2  # same as Decimal('0.01')
+        # Decimal('3.214').quantize(TWOPLACES)
         self._last_run = 0
         self._config = config
         self._initialize_database()
@@ -71,15 +72,15 @@ class Exchange(object):
         if not to_delist:
             return
 
-        for item_id in to_delist:
+        for item_dict in to_delist:
             if debug:
                 logger.debug(f'delist items. Debug is True. Updating database only')
-                logger.debug(f'{item} cancel_sell_order({str(item_id["listing_id"])}')
+                logger.debug(f'{item} cancel_sell_order({str(item_dict["listing_id"])}')
             else:
                 logger.debug(f'delist items. Debug is False. Sending cancel order to steam')
-                logger.debug(f'{item} - listing_id {str(item_id["listing_id"])}')
-                self.steam_market.cancel_sell_order(str(item_id['listing_id']))
-            record = ItemSale.query_ref(item_id=item_id["listing_id"]).first()
+                logger.debug(f'{item} - listing_id {str(item_dict["listing_id"])}')
+                self.steam_market.cancel_sell_order(str(item_dict['listing_id']))
+            record = ItemSale.query_ref(name=item, item_id=item_dict["itemID"]).first()
             ItemSale.session.delete(record)
         ItemSale.session.flush()
 
@@ -101,15 +102,20 @@ class Exchange(object):
                 logger.debug(f'{item} creating real sell order')
                 self.steam_market.create_sell_order(str(element['assetsID']), game=GameOptions.CS,
                                                     money_to_receive=str(int(element['you_receive'])))
+                # {'success': True}
+
             # Element ready for DB
+            buyer_pays = decimal.Decimal(element["buyer_pays"] / 100).quantize(decimal.Decimal('0.01'))
+            you_receive = decimal.Decimal(element["you_receive"] / 100).quantize(decimal.Decimal('0.01'))
+            # TODO decimal.Decimal(element["you_receive"] / 100) + 0 rounds 18.59 to 18.6
             for_db = ItemSale(
                 item_id=element["assetsID"],
                 date=datetime.now(),
                 name=item,
                 sold=False,
                 quantity=1,
-                buyer_pays=decimal.Decimal(element["buyer_pays"] / 100) + 0,
-                you_receive=decimal.Decimal(element["you_receive"] / 100) + 0,
+                buyer_pays=buyer_pays,
+                you_receive=you_receive,
                 account=f"{self._config['username']}",
                 currency=self.steam_market.currency.name
             )
@@ -149,7 +155,7 @@ class Exchange(object):
         :return: pd.Dataframe containing all the listings
         """
         listings: dict = self.steam_market.get_my_market_listings()
-        normalized = pd.json_normalize(list(listings['sell_listings'].values()))
+
         columns_to_keep = [
             'listing_id',
             'buyer_pay',
@@ -181,9 +187,10 @@ class Exchange(object):
                   'description.type': 'type',
                   'description.market_hash_name': 'market_hash_name',
                   'description.commodity': 'commodity'}
-        if normalized.empty:
+        if not listings['sell_listings']:
             listings_sell: pd.DataFrame = pd.DataFrame(columns=columns_to_keep)
         else:
+            # ITEMID=listings['sell_listings']['3423280172430835896']['description']['id']
             listings_sell: pd.DataFrame = pd.DataFrame.from_records(
                 pd.json_normalize(list(listings['sell_listings'].values())), columns=columns_to_keep)
         listings_sell = listings_sell.rename(rename, axis=1)
@@ -200,8 +207,9 @@ class Exchange(object):
         :param items_in_inventory: dataframe containing all items of this kind in inventory
         :param items_sale_listings: dataframe containing all items of this kind on sale
         """
+
         items_present = list(items_in_inventory['id']) + list(items_sale_listings['id'])
-        items_in_db = ItemSale.query_ref(name=item).all()
+        items_in_db = ItemSale.query_ref(name=item, sold=False).all()
         elements_sold = [element for element in items_in_db if element.item_id not in items_present]
         if not elements_sold:
             logger.info('no elements are were sold. No need to update DB')

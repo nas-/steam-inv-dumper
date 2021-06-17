@@ -6,6 +6,7 @@ import pandas as pd
 
 from market_sell import utilities
 
+TWODIGITS = decimal.Decimal('0.01')
 
 class Test(TestCase):
     def test_convert_empty_string(self) -> None:
@@ -100,7 +101,8 @@ class Test(TestCase):
 
 class TestActions(TestCase):
     def setUp(self) -> None:
-        decimal.getcontext().prec = 3
+        # decimal.getcontext().prec = 3
+        pass
 
     def test_delists_price_lower_than_acceptable(self) -> None:
         market_listings = 3
@@ -187,7 +189,7 @@ class TestActions(TestCase):
         N_MarketListings = 5
         MinPriceOfMyMarketListings = 1.89
         N_NumberToSell = 12
-        ItemSellingPrice = D(1.80)
+        ItemSellingPrice = D(1.80).quantize(TWODIGITS)
         minAllowedPrice = 1.75
         N_InInventory = 0
         actions = utilities.actions_to_make_list_delist(N_MarketListings,
@@ -209,7 +211,7 @@ class TestActions(TestCase):
         min_price_market_listing = 1.89
         max_on_sale = 12
         tot_in_inventory = 5
-        usual_price = D(1.80)
+        usual_price = D(1.80).quantize(TWODIGITS)
         min_allowed_price = 1.75
 
         actions = utilities.actions_to_make_list_delist(market_listings,
@@ -232,7 +234,7 @@ class TestActions(TestCase):
         min_price_market_listing = 1.89
         max_on_sale = 5
         tot_in_inventory = 5
-        usual_price = D(1.80)
+        usual_price = D(1.80).quantize(TWODIGITS)
         min_allowed_price = 1.75
         actions = utilities.actions_to_make_list_delist(market_listings,
                                                         min_price_market_listing,
@@ -253,7 +255,7 @@ class TestActions(TestCase):
         min_price_market_listing = 1.89
         max_on_sale = 5
         tot_in_inventory = 5
-        usual_price = D(1.80)
+        usual_price = D(1.80).quantize(TWODIGITS)
         min_allowed_price = 1.75
         actions = utilities.actions_to_make_list_delist(market_listings,
                                                         min_price_market_listing,

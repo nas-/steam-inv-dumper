@@ -146,7 +146,8 @@ class FloatManager(object):
 
     def give_job(self, url: str) -> dict:
         if not self.workers:
-            raise Exception('No bots configured')
+            return
+            # raise Exception('No bots configured')
         for bot in self.workers:
             if (
                     not bot.busy

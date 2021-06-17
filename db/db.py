@@ -20,7 +20,6 @@ _DB_URL = 'sqlite:///sales.sqlite'
 
 # TODO make so that cancelled orders show up in db.
 
-
 def init_db(db_url: str = _DB_URL) -> None:
     """
     Initializes this module with the given config,
@@ -72,10 +71,9 @@ class ItemSale(_DECL_BASE):
     id text,date int, name text,sold bool, qty real,'
                                 'buyer_pays real, you_receive real
     """
-    decimal.getcontext().prec = 3
-
     __tablename__ = 'sales'
-    item_id = Column(Integer, nullable=False, primary_key=True)
+    id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
+    item_id = Column(Integer, nullable=False)
     date = Column(DateTime, nullable=False)
     name = Column(String, nullable=False)
     sold = Column(Boolean, nullable=False, default=False)
@@ -87,6 +85,8 @@ class ItemSale(_DECL_BASE):
 
     def to_json(self) -> Dict[str, Any]:
         return {
+            'id': self.id,
+            'item_id': self.item_id,
             'date': self.date,
             'name': self.name,
             'sold': self.sold,
@@ -97,17 +97,22 @@ class ItemSale(_DECL_BASE):
         }
 
     @staticmethod
-    def query_ref(name: Optional[str] = None, item_id: Optional[str] = None) -> Query:
+    def query_ref(name: Optional[str] = None, item_id: Optional[str] = None, sold: Optional[bool] = None) -> Query:
         """
         Get all currently active locks for this pair
+        :param sold: if should search only sold items
         :param item_id: Itemid to Check for
         :rtype: object
         :param name: Skin to check for.
         """
 
         filters = []
+        if sold:
+            filters.append(ItemSale.sold == sold)
         if name:
             filters.append(ItemSale.name == name)
+        if item_id:
+            filters.append(ItemSale.item_id == item_id)
         return ItemSale.query.filter(
             *filters
         )
@@ -118,7 +123,8 @@ class ItemSale(_DECL_BASE):
 
 if __name__ == '__main__':
     init_db(_DB_URL)
-    a = ItemSale(date=datetime.datetime.now(), name='test1', quantity=1, buyer_pays=decimal.Decimal(1.02),
+    a = ItemSale(date=datetime.datetime.now(), item_id=12345, name='test1', quantity=1,
+                 buyer_pays=decimal.Decimal(1.02),
                  you_receive=2)
     ItemSale.session.add(a)
     ItemSale.session.flush()

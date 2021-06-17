@@ -26,3 +26,4 @@ if __name__ == '__main__':
         flo = float_getter.give_job(links[1])
         print(flo)
         time.sleep(20)
+# TODO D(100.4299).quantize(D('0.01'))

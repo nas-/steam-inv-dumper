@@ -8,7 +8,8 @@ from pandas import DataFrame
 from steampy.models import Currency, GameOptions
 
 logger = logging.getLogger(__name__)
-decimal.getcontext().prec = 3
+# decimal.getcontext().prec = 3
+TWODIGITS = decimal.Decimal('0.01')
 
 
 def convert_string_prices(price: str) -> decimal.Decimal:
@@ -18,7 +19,7 @@ def convert_string_prices(price: str) -> decimal.Decimal:
     :return: int_price as decimal.Decimal
     """
     if not price:
-        return decimal.Decimal(0)
+        return decimal.Decimal(0).quantize(TWODIGITS)
     price = str(price)
     pattern = r'\D*(\d*)(\.|,)?(\d*)'
 
@@ -28,7 +29,7 @@ def convert_string_prices(price: str) -> decimal.Decimal:
             price = price.replace(tokens.group(2), '')
         else:
             decimal_str = tokens.group(1) + '.' + tokens.group(3)
-            return decimal.Decimal(decimal_str)
+            return decimal.Decimal(decimal_str).quantize(TWODIGITS)
 
 
 def get_items_to_list(name: str, number: int, price: decimal.Decimal, inventory: DataFrame) -> List[Dict]:
@@ -79,7 +80,8 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     :return: Dict of different prices - in cents.
     keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'
     """
-    decimal.getcontext().prec = 28
+
+    #decimal.getcontext().prec = 28
 
     def amount_to_send_desired_received_amt(price_inner: float) -> Dict[str, float]:
         """
@@ -124,7 +126,7 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     intfees['you_receive'] = int(
         intfees['money_to_ask'] - amount_to_send_desired_received_amt(fees['amount'] - fees['fees'])['fees'])
 
-    decimal.getcontext().prec = 3
+    #decimal.getcontext().prec = 3
     return intfees
 
 
@@ -132,6 +134,7 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
 def actions_to_make_list_delist(num_market_listings: int, min_price_mark_listing: float, num_to_sell: int,
                                 num_in_inventory: int, item_selling_price: decimal.Decimal,
                                 min_allowed_price: float) -> Dict:
+    item_selling_price = item_selling_price.quantize(TWODIGITS)
     actions = {'delist': determine_delists(num_market_listings, min_price_mark_listing, num_to_sell, num_in_inventory,
                                            item_selling_price, min_allowed_price)}
     num_market_listings -= actions['delist']['qty']
@@ -157,9 +160,9 @@ def determine_delists(market_listings: int, min_price_market_listing: float, max
     """
 
     # Convertions
-    min_price_market_listing_decimal = decimal.Decimal(min_price_market_listing) + 0
-    usual_price = decimal.Decimal(usual_price) + 0
-    min_allowed_price_decimal = decimal.Decimal(min_allowed_price) + 0
+    min_price_market_listing_decimal = decimal.Decimal(min_price_market_listing).quantize(TWODIGITS)
+    usual_price = decimal.Decimal(usual_price).quantize(TWODIGITS)
+    min_allowed_price_decimal = decimal.Decimal(min_allowed_price).quantize(TWODIGITS)
 
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
     imLowesPrice = usual_price >= min_price_market_listing_decimal >= min_allowed_price_decimal
@@ -196,8 +199,8 @@ def determine_delists(market_listings: int, min_price_market_listing: float, max
 def determine_lists(market_listings: int, max_on_sale: int, tot_in_inventory: int, usual_price: decimal.Decimal,
                     min_allowed_price: float) -> dict:
     # Convertions
-    usual_price = decimal.Decimal(usual_price) + 0
-    min_allowed_price_decimal = decimal.Decimal(min_allowed_price) + 0
+    usual_price = decimal.Decimal(usual_price).quantize(TWODIGITS)
+    min_allowed_price_decimal = decimal.Decimal(min_allowed_price).quantize(TWODIGITS)
 
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
 
