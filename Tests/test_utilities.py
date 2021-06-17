@@ -272,7 +272,7 @@ class TestActions(TestCase):
         tot_in_inventory = 19
         market_listings = 1
         max_on_sale = 1
-        min_price_market_listing = D('12.40')
+        min_price_market_listing = D('12.39')
         usual_price = D('6')
         min_allowed_price = D('12.40')
 
@@ -283,8 +283,8 @@ class TestActions(TestCase):
                                                         usual_price,
                                                         min_allowed_price)
 
-        self.assertEqual(actions, {'delist': {'qty': 0, 'int_price': D('12.4')},
-                                   'list': {'qty': 0, 'int_price': D('12.4')}})
+        self.assertEqual(actions, {'delist': {'qty': 0, 'int_price': D('12.39')},
+                                   'list': {'qty': 0, 'int_price': D('12.39')}})
         self.assertTrue(market_listings - actions['delist']['qty'] + actions['list']['qty'] <= max_on_sale)
 
     def test_delist_all_and_relist(self) -> None:

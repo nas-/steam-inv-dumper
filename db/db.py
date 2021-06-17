@@ -73,7 +73,7 @@ class ItemSale(_DECL_BASE):
     """
     __tablename__ = 'sales'
     id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
-    item_id = Column(Integer, nullable=False)
+    item_id = Column(String, nullable=False)
     date = Column(DateTime, nullable=False)
     name = Column(String, nullable=False)
     sold = Column(Boolean, nullable=False, default=False)
@@ -107,7 +107,7 @@ class ItemSale(_DECL_BASE):
         """
 
         filters = []
-        if sold:
+        if sold is not None:
             filters.append(ItemSale.sold == sold)
         if name:
             filters.append(ItemSale.name == name)

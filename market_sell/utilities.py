@@ -134,6 +134,11 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
 def actions_to_make_list_delist(num_market_listings: int, min_price_mark_listing: float, num_to_sell: int,
                                 num_in_inventory: int, item_selling_price: decimal.Decimal,
                                 min_allowed_price: float) -> Dict:
+    # Ensure min_allowed_price is not a "ambiguous" price
+    fees = get_steam_fees_object(min_allowed_price)
+    if fees.get('money_to_ask') / 100 < min_allowed_price:
+        min_allowed_price = fees.get('money_to_ask') / 100
+
     item_selling_price = item_selling_price.quantize(TWODIGITS)
     actions = {'delist': determine_delists(num_market_listings, min_price_mark_listing, num_to_sell, num_in_inventory,
                                            item_selling_price, min_allowed_price)}

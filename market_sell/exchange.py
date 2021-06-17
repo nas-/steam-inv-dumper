@@ -210,7 +210,7 @@ class Exchange(object):
 
         items_present = list(items_in_inventory['id']) + list(items_sale_listings['id'])
         items_in_db = ItemSale.query_ref(name=item, sold=False).all()
-        elements_sold = [element for element in items_in_db if element.item_id not in items_present]
+        elements_sold = [element for element in items_in_db if str(element.item_id) not in items_present]
         if not elements_sold:
             logger.info('no elements are were sold. No need to update DB')
             return

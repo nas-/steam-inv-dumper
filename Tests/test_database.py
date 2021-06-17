@@ -25,7 +25,7 @@ class TestSteamDatabase(TestCase):
         ItemSale.session.add(for_db)
         ItemSale.session.flush()
         K = ItemSale.query_ref(item_id='12345').first()
-        self.assertEqual(K.item_id, 12345)
+        self.assertEqual(K.item_id, '12345')
         K = ItemSale.query_ref(name='casekey1').first()
         self.assertEqual(K.name, 'casekey1')
 
