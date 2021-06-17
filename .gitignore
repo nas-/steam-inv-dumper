@@ -1,3 +1,5 @@
 /venv/
 /.idea/
 /config.json
+*.sqlite
+/nasil2nd
