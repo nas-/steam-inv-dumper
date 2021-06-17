@@ -4,13 +4,14 @@ import logging
 from datetime import datetime
 from typing import List
 
+import arrow
 import pandas as pd
 from steampy.models import GameOptions
 
 from configuration import load_config
 from db.db import init_db, ItemSale
-from . import utilities
 from market_sell.steam_classes import SteamClientPatched, SteamLimited
+from . import utilities
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,14 @@ class Exchange(object):
     """
 
     def __init__(self, config: str):
+        # todo make _heartbeat_interval loadable from config.
         decimal.getcontext().prec = 3
+        self._last_run = 0
         self._config = load_config(config)
         self._initialize_database()
         self._prepare_markets()
+        self._heartbeat_interval = 60
+        self._heartbeat_msg: float = 0
 
     def _prepare_markets(self) -> None:
         if self._config.get('use_cookies', False):
@@ -211,7 +216,7 @@ class Exchange(object):
     def items_to_sell(self) -> dict:
         return self._config.get('items_to_sell', {})
 
-    def sell_loop(self) -> None:
+    def _sell_loop(self) -> None:
         """
         Takes an exchange and runs the CheckSold, update database, sell more items cycle.
         """
@@ -252,3 +257,19 @@ class Exchange(object):
             # Items to delete
             listItemsToDeList = utilities.get_items_to_delist(item, actions["delist"]["qty"], item_on_sale_listings)
             self.dispatch_delists(item, listItemsToDeList)
+
+    def run(self):
+        """
+        :return:
+        """
+        # todo Put this in config, and make sure it is there (validation with defaults)
+        timeout = 300
+        if self._last_run + timeout < arrow.now().timestamp():
+            self._sell_loop()
+            self._last_run = arrow.now().timestamp()
+
+        if self._heartbeat_interval:
+            now = arrow.now().timestamp()
+            if (now - self._heartbeat_msg) > self._heartbeat_interval:
+                logger.info(f"Bot heartbeat.")
+                self._heartbeat_msg = now

@@ -21,6 +21,7 @@
     }
   },
   "floats": {
+    "timeout": 300,
     "retrieve_floats": true,
     "float_accounts": [
       {

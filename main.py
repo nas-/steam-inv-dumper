@@ -12,5 +12,5 @@ if __name__ == '__main__':
     exchange = Exchange('config.json')
 
     for _ in range(50):
-        exchange.sell_loop()
-        time.sleep(1800)
+        exchange.run()
+        time.sleep(20)
