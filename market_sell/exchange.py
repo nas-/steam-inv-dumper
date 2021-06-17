@@ -8,8 +8,7 @@ import arrow
 import pandas as pd
 from steampy.models import GameOptions
 
-from configuration import load_config
-from db.db import init_db, ItemSale
+from db.db import ItemSale, init_db
 from market_sell.steam_classes import SteamClientPatched, SteamLimited
 from . import utilities
 
@@ -21,11 +20,11 @@ class Exchange(object):
     Class representing an exchange. In this case Steam Market.
     """
 
-    def __init__(self, config: str):
+    def __init__(self, config: dict):
         # todo make _heartbeat_interval loadable from config.
         decimal.getcontext().prec = 3
         self._last_run = 0
-        self._config = load_config(config)
+        self._config = config
         self._initialize_database()
         self._prepare_markets()
         self._heartbeat_interval = 60

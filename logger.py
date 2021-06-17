@@ -1,7 +1,7 @@
 import logging
 import sys
 from logging import Formatter
-from logging.handlers import (BufferingHandler)
+from logging.handlers import BufferingHandler
 from typing import Optional
 
 logger = logging.getLogger(__name__)
