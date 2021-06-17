@@ -128,19 +128,25 @@ links = [
 
 
 class FloatManager(object):
-    def __init__(self, bots_login: list = None, force_refresh: bool = False) -> None:
-        self._timeout = 2
-        if bots_login is None:
-            bots_login = []
-        self._bots_login = bots_login
-        self._retrieve_game_data(force_refresh)
+    def __init__(self, config: dict = None) -> None:
+        if config is None:
+            config = {}
+        self._bots_login = config.get('float_accounts', [])
+        self._timeout = config.get('timeout', 3)
+        self._retrieve_game_data(config.get('refresh_game_files', False))
+        if not config.get('retrieve_floats', False):
+            # nothing to do
+            self.workers = []
+            return
         self.workers = self._initialize_workers()
 
         # todo add tests
 
         # make a CSGOWorker per each bot.
 
-    def give_job(self, url: str):
+    def give_job(self, url: str) -> dict:
+        if not self.workers:
+            raise Exception('No bots configured')
         for bot in self.workers:
             if (
                     not bot.busy

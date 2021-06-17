@@ -262,7 +262,7 @@ class Exchange(object):
         :return:
         """
         # todo Put this in config, and make sure it is there (validation with defaults)
-        timeout = 300
+        timeout = 120
         if self._last_run + timeout < arrow.now().timestamp():
             self._sell_loop()
             self._last_run = arrow.now().timestamp()

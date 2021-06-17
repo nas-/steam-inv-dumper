@@ -21,8 +21,9 @@
     }
   },
   "floats": {
-    "timeout": 300,
+    "timeout": 2,
     "retrieve_floats": true,
+    "refresh_game_files": false,
     "float_accounts": [
       {
         "username": "nasdevtest",
