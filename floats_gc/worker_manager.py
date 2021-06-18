@@ -144,6 +144,17 @@ class FloatManager(object):
 
         # make a CSGOWorker per each bot.
 
+    def process_links(self, links: dict):
+        results = []
+        for link in links:
+            res = self.give_job(link['link'])
+            if res.get('success'):
+                new_el = {'price': link.get('price'), 'lisingid': link.get('listingid'), **res['data']}
+                results.append(new_el)
+            else:
+                logger.info(f'Error during request {link}')
+        return results
+
     def give_job(self, url: str) -> dict:
         if not self.workers:
             return

@@ -18,8 +18,6 @@ _SQL_DOCS_URL = 'http://docs.sqlalchemy.org/en/latest/core/engines.html#database
 _DB_URL = 'sqlite:///sales.sqlite'
 
 
-# TODO make so that cancelled orders show up in db.
-
 def init_db(db_url: str = _DB_URL) -> None:
     """
     Initializes this module with the given config,

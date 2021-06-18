@@ -21,15 +21,13 @@ class Exchange(object):
     """
 
     def __init__(self, config: dict):
-        # todo make _heartbeat_interval loadable from config.
-        # TWOPLACES = Decimal(10) ** -2  # same as Decimal('0.01')
-        # Decimal('3.214').quantize(TWOPLACES)
         self._last_run = 0
         self._config = config
         self._initialize_database()
         self._prepare_markets()
-        self._heartbeat_interval = 60
+        self._heartbeat_interval = config.get('heartbeat_interval')
         self._heartbeat_msg: float = 0
+        self._timeout = self._config.get('market_sell_timeout')
 
     def _prepare_markets(self) -> None:
         if self._config.get('use_cookies', False):
@@ -107,7 +105,6 @@ class Exchange(object):
             # Element ready for DB
             buyer_pays = decimal.Decimal(element["buyer_pays"] / 100).quantize(decimal.Decimal('0.01'))
             you_receive = decimal.Decimal(element["you_receive"] / 100).quantize(decimal.Decimal('0.01'))
-            # TODO decimal.Decimal(element["you_receive"] / 100) + 0 rounds 18.59 to 18.6
             for_db = ItemSale(
                 item_id=element["assetsID"],
                 date=datetime.now(),
@@ -245,7 +242,6 @@ class Exchange(object):
             min_allowed_price = self.items_to_sell[item]['min_price']
             if item_on_sale_listings.empty:
                 min_price_already_on_sale = 0
-            # TODO make selling int_price an instance of PriceOverview
             sellingPrice = utilities.get_item_price(self.steam_market, item)
 
             actions = utilities.actions_to_make_list_delist(num_market_listings=amount_on_sale,
@@ -265,13 +261,11 @@ class Exchange(object):
             listItemsToDeList = utilities.get_items_to_delist(item, actions["delist"]["qty"], item_on_sale_listings)
             self.dispatch_delists(item, listItemsToDeList)
 
-    def run(self):
+    def run(self) -> None:
         """
-        :return:
+        :return:None
         """
-        # todo Put this in config, and make sure it is there (validation with defaults)
-        timeout = 120
-        if self._last_run + timeout < arrow.now().timestamp():
+        if self._last_run + self._timeout < arrow.now().timestamp():
             self._sell_loop()
             self._last_run = arrow.now().timestamp()
 

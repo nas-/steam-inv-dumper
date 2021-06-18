@@ -1,6 +1,7 @@
 import logging
 import pickle as cpickle
 from typing import Callable
+from urllib.parse import urlencode
 
 import bs4
 import requests
@@ -58,6 +59,44 @@ class SteamLimited(SteamMarket):
         except AttributeError:
             return attribute
 
+    # ? @staticmethod
+    def get_listings_for_item(self, market_hash_name, count=10, start=0):
+        """
+        Gets inspect links from listings from market items.
+        :param market_hash_name: Market hash name of the item.
+        :param start: Listing starting at
+        :param count: Count of listings tor retrieve
+        :return: list of inspects links.
+        """
+        BASEURL = f'https://steamcommunity.com/market/listings/730/{market_hash_name}/render/?query=&'
+        # TODO start-end max =100
+        params = {'start': start, 'count': count, 'language': 'english', 'currency': self.currency.value}
+        params_str = urlencode(params)
+        req = requests.get(f'{BASEURL}{params_str}')
+        # TODO raise
+        req.raise_for_status()
+        req_json = req.json()
+        links = []
+        if req_json['success'] and req_json['total_count'] > 0:
+            for link in req_json['listinginfo']:
+                listingid = req_json['listinginfo'][link]['listingid']
+                assetid = req_json['listinginfo'][link]['asset']['id']
+                inspect_pres = req_json['listinginfo'][link]['asset'].get('market_actions')
+                you_get = req_json['listinginfo'][link]['converted_price_per_unit']
+                fee = req_json['listinginfo'][link]['converted_fee_per_unit']
+                price = you_get + fee
+                if inspect_pres:
+                    inspect = req_json['listinginfo'][link]['asset']['market_actions'][0]['link']
+                    insp = inspect.replace(r'%listingid%', listingid).replace('%assetid%', assetid)
+                    links.append({'link': insp, 'listingid': listingid, 'price': price})
+        elif not req_json['success']:
+            # TODO raise exception
+            pass
+        elif req_json['total_count'] == 0:
+            # TODO raise exception
+            pass
+        return links
+
 
 class SteamClientPatched(SteamClient):
     """
@@ -73,7 +112,7 @@ class SteamClientPatched(SteamClient):
         """
         Dumps the class to Pickle for easier re-logins.
         """
-        with open(filename, 'wb') as file:
+        with open(f'{filename}.pkl', 'wb') as file:
             cpickle.dump(self, file)
 
     @classmethod
@@ -82,7 +121,7 @@ class SteamClientPatched(SteamClient):
         Method to reload the class from its own pickle file
         """
         try:
-            with open(filename, 'rb') as file:
+            with open(f'{filename}.pkl', 'rb') as file:
                 a = cpickle.load(file)
         except FileNotFoundError:
             raise ValueError('The session files are not present')
@@ -123,7 +162,3 @@ class SteamClientPatched(SteamClient):
         choices = {'pуб.': Currency.RUB, '€': Currency.EURO, 'USD': Currency.USD}
         currency = [key for key in choices if key in balance_string]
         return balance, choices.get(currency[0], '')
-
-# TODO make function to get
-# https://steamcommunity.com/market/listings/730/{market_hash_name}/render/?query=&start=0&count=10&language=english&currency=3
-# and grab the inspect links, inspect them and catch low float stuff.

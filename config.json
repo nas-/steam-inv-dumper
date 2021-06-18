@@ -6,9 +6,11 @@
     "shared_secret": "SOIFN6f0QcL7n9+XItFoA8M+8OQ=",
     "steamid": "76561198042787444"
   },
+  "heartbeat_interval": 60,
+  "market_sell_timeout": 120,
   "username": "nasil2nd",
   "use_cookies": true,
-  "debug": false,
+  "debug": true,
   "db_url": "sqlite:///sales.sqlite",
   "items_to_sell": {
     "CS:GO Weapon Case 2": {
@@ -22,7 +24,7 @@
   },
   "floats": {
     "timeout": 2,
-    "retrieve_floats": false,
+    "retrieve_floats": true,
     "refresh_game_files": false,
     "float_accounts": [
       {

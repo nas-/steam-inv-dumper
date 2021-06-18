@@ -58,19 +58,19 @@ order = [146, 602, 393, 994, 359, 541, 688, 129, 792, 412, 281, 743, 787, 241, 1
          468, 348, 341, 910, 636, 403, 520, 961, 93, 575, 763]
 
 doppler = {
-    415: 'Ruby',
-    416: 'Sapphire',
-    417: 'Black Pearl',
-    418: 'Phase 1',
-    419: 'Phase 2',
-    420: 'Phase 3',
-    421: 'Phase 4',
-    568: 'Emerald',
-    569: 'Phase 1',
-    570: 'Phase 2',
-    571: 'Phase 3',
-    572: 'Phase 4',
-    619: 'Sapphire'
+    '415': 'Ruby',
+    '416': 'Sapphire',
+    '417': 'Black Pearl',
+    '418': 'Phase 1',
+    '419': 'Phase 2',
+    '420': 'Phase 3',
+    '421': 'Phase 4',
+    '568': 'Emerald',
+    '569': 'Phase 1',
+    '570': 'Phase 2',
+    '571': 'Phase 3',
+    '572': 'Phase 4',
+    '619': 'Sapphire'
 }
 
 marbles = {

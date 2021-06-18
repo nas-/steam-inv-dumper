@@ -81,7 +81,7 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'
     """
 
-    #decimal.getcontext().prec = 28
+    # decimal.getcontext().prec = 28
 
     def amount_to_send_desired_received_amt(price_inner: float) -> Dict[str, float]:
         """
@@ -126,16 +126,26 @@ def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     intfees['you_receive'] = int(
         intfees['money_to_ask'] - amount_to_send_desired_received_amt(fees['amount'] - fees['fees'])['fees'])
 
-    #decimal.getcontext().prec = 3
+    # decimal.getcontext().prec = 3
     return intfees
 
 
-# TODO refactor with PEP8. Fix type hints.
 def actions_to_make_list_delist(num_market_listings: int, min_price_mark_listing: float, num_to_sell: int,
                                 num_in_inventory: int, item_selling_price: decimal.Decimal,
                                 min_allowed_price: float) -> Dict:
+    """
+
+    :param num_market_listings: Number of market listings.
+    :param min_price_mark_listing:  min price of market lisings.
+    :param num_to_sell:  Number to have on sale
+    :param num_in_inventory: Number in inventory
+    :param item_selling_price: Item usual selling price.
+    :param min_allowed_price:  Minimum allowed price
+    :return: Actions to make.
+    """
     # Ensure min_allowed_price is not a "ambiguous" price
-    fees = get_steam_fees_object(min_allowed_price)
+    min_allowed_price_dec = decimal.Decimal(min_allowed_price).quantize(TWODIGITS)
+    fees = get_steam_fees_object(min_allowed_price_dec)
     if fees.get('money_to_ask') / 100 < min_allowed_price:
         min_allowed_price = fees.get('money_to_ask') / 100
 
