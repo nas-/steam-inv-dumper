@@ -8,7 +8,7 @@ import arrow
 import pandas as pd
 from steampy.models import GameOptions
 
-from db.db import ItemSale, init_db
+from db.db import Listing, init_db
 from market_sell.steam_classes import SteamClientPatched, SteamLimited
 from . import utilities
 
@@ -54,8 +54,8 @@ class Exchange(object):
         db_url = self._config.get('db_url', True)
         if debug:
             init_db('sqlite:///sales_debug.sqlite')
-            ItemSale.query.delete()
-            ItemSale.session.flush()
+            Listing.query.delete()
+            Listing.session.flush()
         else:
             init_db(db_url)
 
@@ -78,9 +78,9 @@ class Exchange(object):
                 logger.debug(f'delist items. Debug is False. Sending cancel order to steam')
                 logger.debug(f'{item} - listing_id {str(item_dict["listing_id"])}')
                 self.steam_market.cancel_sell_order(str(item_dict['listing_id']))
-            record = ItemSale.query_ref(name=item, item_id=item_dict["itemID"]).first()
-            ItemSale.session.delete(record)
-        ItemSale.session.flush()
+            record = Listing.query_ref(name=item, item_id=item_dict["itemID"]).first()
+            Listing.session.delete(record)
+        Listing.session.flush()
 
     def dispatch_sales(self, item: str, item_for_sale_list: List) -> None:
         """
@@ -105,7 +105,7 @@ class Exchange(object):
             # Element ready for DB
             buyer_pays = decimal.Decimal(element["buyer_pays"] / 100).quantize(decimal.Decimal('0.01'))
             you_receive = decimal.Decimal(element["you_receive"] / 100).quantize(decimal.Decimal('0.01'))
-            for_db = ItemSale(
+            for_db = Listing(
                 item_id=element["assetsID"],
                 date=datetime.now(),
                 name=item,
@@ -116,8 +116,8 @@ class Exchange(object):
                 account=f"{self._config['username']}",
                 currency=self.steam_market.currency.name
             )
-            ItemSale.session.add(for_db)
-        ItemSale.session.flush()
+            Listing.session.add(for_db)
+        Listing.session.flush()
 
     def get_own_items(self, game: GameOptions = GameOptions.CS) -> pd.DataFrame:
         """
@@ -205,7 +205,7 @@ class Exchange(object):
         """
 
         items_present = list(items_in_inventory['id']) + list(items_sale_listings['id'])
-        items_in_db = ItemSale.query_ref(name=item, sold=False).all()
+        items_in_db = Listing.query_ref(name=item, sold=False).all()
         elements_sold = [element for element in items_in_db if str(element.item_id) not in items_present]
         if not elements_sold:
             logger.info('no elements are were sold. No need to update DB')
@@ -213,7 +213,7 @@ class Exchange(object):
         logger.info(f'updating {" ".join(str(a) for a in elements_sold)} to Sold because they were sold')
         for element in elements_sold:
             element.sold = True
-        ItemSale.session.flush()
+        Listing.session.flush()
 
     @property
     def items_to_sell(self) -> dict:
@@ -224,6 +224,7 @@ class Exchange(object):
         Takes an exchange and runs the CheckSold, update database, sell more items cycle.
         """
         my_items: pd.DataFrame = self.get_own_items()
+        self._update_items_in_database(my_items)
         listings_sell = self.get_own_listings()
         for item in self._config.get('items_to_sell', []):
             # dataframes
@@ -273,3 +274,6 @@ class Exchange(object):
             if (now - self._heartbeat_msg) > self._heartbeat_interval:
                 logger.info(f"Bot heartbeat.")
                 self._heartbeat_msg = now
+
+    def _update_items_in_database(self):
+        pass

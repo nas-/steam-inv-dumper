@@ -1,14 +1,13 @@
-import datetime
 import decimal
 import logging
 from typing import Any, Dict, Optional
 
 import sqlalchemy.types as types
 from sqlalchemy import (Boolean, Column, DateTime, Integer, String,
-                        create_engine)
+                        create_engine, ForeignKey)
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Query, scoped_session, sessionmaker
+from sqlalchemy.orm import Query, scoped_session, sessionmaker, relationship
 from sqlalchemy.pool import StaticPool
 
 logger = logging.getLogger(__name__)
@@ -43,9 +42,8 @@ def init_db(db_url: str = _DB_URL) -> None:
         engine = create_engine(db_url, **kwargs)
     except NoSuchModuleError:
         raise Exception
-    ItemSale.session = scoped_session(sessionmaker(bind=engine, autoflush=True, autocommit=True))
-
-    ItemSale.query = ItemSale.session.query_property()
+    Listing.session = scoped_session(sessionmaker(bind=engine, autoflush=True, autocommit=True))
+    Listing.query = Listing.session.query_property()
     _DECL_BASE.metadata.create_all(engine)
 
 
@@ -63,32 +61,47 @@ class SqliteNumeric(types.TypeDecorator):
         return decimal.Decimal(value)
 
 
-class ItemSale(_DECL_BASE):
+class Item(_DECL_BASE):
     """
-    ItemSale database model.
+    Item database model.
+    contains all items in inventory
+    """
+    __tablename__ = 'items'
+    id = Column(Integer, primary_key=True)
+    item_id = Column(String, nullable=False)
+    market_hash_name = Column(String, nullable=False)
+    account = Column(String, nullable=False, default='')
+    appid = Column(String, nullable=False, default='730')
+    contextid = Column(String, nullable=False, default='2')
+    # Bool fields
+    tradable = Column(Boolean, nullable=False, default=False)
+    marketable = Column(Boolean, nullable=False, default=False)
+    commodity = Column(Boolean, nullable=False, default=False)
+    listings = relationship("Listing", back_populates="item")
+
+
+class Listing(_DECL_BASE):
+    """
+    Listing database model.
     id text,date int, name text,sold bool, qty real,'
                                 'buyer_pays real, you_receive real
     """
     __tablename__ = 'sales'
     id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
-    item_id = Column(String, nullable=False)
+    item_id = Column(String, ForeignKey('items.item_id'))
     date = Column(DateTime, nullable=False)
-    name = Column(String, nullable=False)
     sold = Column(Boolean, nullable=False, default=False)
-    quantity = Column(Integer, nullable=False, default=1)
     buyer_pays = Column(SqliteNumeric(12, 3), nullable=False)
     you_receive = Column(SqliteNumeric(12, 3), nullable=False)
     currency = Column(String, nullable=False, default='EUR')
-    account = Column(String, nullable=False, default='')
+    item = relationship("Item", back_populates="listings")
 
     def to_json(self) -> Dict[str, Any]:
         return {
             'id': self.id,
             'item_id': self.item_id,
             'date': self.date,
-            'name': self.name,
             'sold': self.sold,
-            'quantity': self.quantity,
             'buyer_pays': self.buyer_pays,
             'you_receive': self.you_receive
 
@@ -106,12 +119,12 @@ class ItemSale(_DECL_BASE):
 
         filters = []
         if sold is not None:
-            filters.append(ItemSale.sold == sold)
+            filters.append(Listing.sold == sold)
         if name:
-            filters.append(ItemSale.name == name)
+            filters.append(Listing.name == name)
         if item_id:
-            filters.append(ItemSale.item_id == item_id)
-        return ItemSale.query.filter(
+            filters.append(Listing.item_id == item_id)
+        return Listing.query.filter(
             *filters
         )
 
@@ -121,10 +134,26 @@ class ItemSale(_DECL_BASE):
 
 if __name__ == '__main__':
     init_db(_DB_URL)
-    a = ItemSale(date=datetime.datetime.now(), item_id=12345, name='test1', quantity=1,
-                 buyer_pays=decimal.Decimal(1.02),
-                 you_receive=2)
-    ItemSale.session.add(a)
-    ItemSale.session.flush()
-    k = ItemSale.query_ref('test1')
+    # id = Column(Integer, primary_key=True)
+    # item_id = Column(String, nullable=False)
+    # market_hash_name = Column(String, nullable=False)
+    # account = Column(String, nullable=False, default='')
+    # appid = Column(String, nullable=False, default='730')
+    # contextid = Column(String, nullable=False, default='2')
+    # # Bool fields
+    # tradable = Column(Boolean, nullable=False)
+    # marketable = Column(Boolean, nullable=False)
+    # commodity = Column(Boolean, nullable=False)
+    # listings = relationship("Listing", back_populates="item")
+
+    # for _ in range(5):
+    #     b = Item(item_id=f"12345{_}", market_hash_name='test', account='nas')
+    #     session.add(b)
+    # for _ in range(5):
+    #     a = Listing(date=datetime.datetime.now(), item_id=f"12345",
+    #                 buyer_pays=decimal.Decimal(1.02),
+    #                 you_receive=2)
+    #     Listing.session.add(a)
+    # Listing.session.flush()
+    Listing.query_ref(item_id='12345')
     pass
