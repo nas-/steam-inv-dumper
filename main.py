@@ -24,5 +24,5 @@ if __name__ == '__main__':
         time.sleep(20)
 
 # TODO remove redundant info from return from GC.
-# TODO cache the whole inventory. Update it only sometimes.
+# TODO cache the Whole inventory. Update it only sometimes.
 # TODO add

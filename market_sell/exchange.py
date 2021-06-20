@@ -27,7 +27,7 @@ class Exchange(object):
         self._prepare_markets()
         self._heartbeat_interval = config.get('heartbeat_interval')
         self._heartbeat_msg: float = 0
-        self._timeout = self._config.get('market_sell_timeout')
+        self._timeout: int = self._config.get('market_sell_timeout')
 
     def _prepare_markets(self) -> None:
         if self._config.get('use_cookies', False):
@@ -119,7 +119,6 @@ class Exchange(object):
             ItemSale.session.add(for_db)
         ItemSale.session.flush()
 
-    # TODO possible to cache own items for some time?
     def get_own_items(self, game: GameOptions = GameOptions.CS) -> pd.DataFrame:
         """
         Gets *marketable* items in inventory for specified game
