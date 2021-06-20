@@ -8,9 +8,11 @@ import arrow
 import pandas as pd
 from steampy.models import GameOptions
 
-from db.db import Listing, init_db
+from db.db import Listing, Item, init_db
 from market_sell.steam_classes import SteamClientPatched, SteamLimited
 from . import utilities
+
+TWODIGITS = decimal.Decimal('0.01')
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +56,10 @@ class Exchange(object):
         db_url = self._config.get('db_url', True)
         if debug:
             init_db('sqlite:///sales_debug.sqlite')
-            Listing.query.delete()
-            Listing.session.flush()
+            # Listing.query.delete()
+            # Listing.query.session.flush()
+            # Item.query.delete()
+            # Item.query.session.flush()
         else:
             init_db(db_url)
 
@@ -78,9 +82,10 @@ class Exchange(object):
                 logger.debug(f'delist items. Debug is False. Sending cancel order to steam')
                 logger.debug(f'{item} - listing_id {str(item_dict["listing_id"])}')
                 self.steam_market.cancel_sell_order(str(item_dict['listing_id']))
-            record = Listing.query_ref(name=item, item_id=item_dict["itemID"]).first()
-            Listing.session.delete(record)
-        Listing.session.flush()
+            record = Listing.query_ref(item_id=item_dict["itemID"]).first()
+            record.on_sale = False
+
+        Listing.query.session.flush()
 
     def dispatch_sales(self, item: str, item_for_sale_list: List) -> None:
         """
@@ -108,16 +113,14 @@ class Exchange(object):
             for_db = Listing(
                 item_id=element["assetsID"],
                 date=datetime.now(),
-                name=item,
                 sold=False,
-                quantity=1,
+                on_sale=True,
                 buyer_pays=buyer_pays,
                 you_receive=you_receive,
-                account=f"{self._config['username']}",
                 currency=self.steam_market.currency.name
             )
-            Listing.session.add(for_db)
-        Listing.session.flush()
+            Listing.query.session.add(for_db)
+        Listing.query.session.flush()
 
     def get_own_items(self, game: GameOptions = GameOptions.CS) -> pd.DataFrame:
         """
@@ -195,26 +198,6 @@ class Exchange(object):
         listings_sell['you_receive'] = listings_sell['you_receive'].apply(utilities.convert_string_prices)
         return listings_sell
 
-    def update_sold_items(self, item: str, items_in_inventory: pd.DataFrame, items_sale_listings: pd.DataFrame) -> None:
-        """
-        Finds the items which are not in the inventory or on sale anymore, and update the database,
-        setting them all as sold.
-        :param item: item name
-        :param items_in_inventory: dataframe containing all items of this kind in inventory
-        :param items_sale_listings: dataframe containing all items of this kind on sale
-        """
-
-        items_present = list(items_in_inventory['id']) + list(items_sale_listings['id'])
-        items_in_db = Listing.query_ref(name=item, sold=False).all()
-        elements_sold = [element for element in items_in_db if str(element.item_id) not in items_present]
-        if not elements_sold:
-            logger.info('no elements are were sold. No need to update DB')
-            return
-        logger.info(f'updating {" ".join(str(a) for a in elements_sold)} to Sold because they were sold')
-        for element in elements_sold:
-            element.sold = True
-        Listing.session.flush()
-
     @property
     def items_to_sell(self) -> dict:
         return self._config.get('items_to_sell', {})
@@ -222,17 +205,23 @@ class Exchange(object):
     def _sell_loop(self) -> None:
         """
         Takes an exchange and runs the CheckSold, update database, sell more items cycle.
+        Item_id s change when you remove the item from the market.
         """
         my_items: pd.DataFrame = self.get_own_items()
+        my_listings = self.get_own_listings()
+
+        self.update_sold_items(my_items, my_listings)
         self._update_items_in_database(my_items)
-        listings_sell = self.get_own_listings()
+        self._update_lisings_in_database(my_listings)
+        # TODO itemIDs change when you sell and remove from sale.
+        #
+
         for item in self._config.get('items_to_sell', []):
             # dataframes
-            item_on_sale_listings = listings_sell[listings_sell['market_hash_name'] == item]
+            item_on_sale_listings = my_listings[my_listings['market_hash_name'] == item]
             items_in_inventory = my_items[my_items['market_hash_name'] == item]
             min_price_already_on_sale = item_on_sale_listings['buyer_pay'].min()
             # Update sales listings.
-            self.update_sold_items(item, items_in_inventory, item_on_sale_listings)
             # define amounts
             amount_in_inventory = items_in_inventory.shape[0]
             amount_to_sell = int(self.items_to_sell[item].get('quantity', 0))
@@ -275,5 +264,73 @@ class Exchange(object):
                 logger.info(f"Bot heartbeat.")
                 self._heartbeat_msg = now
 
-    def _update_items_in_database(self):
-        pass
+    def update_sold_items(self, items_in_inventory: pd.DataFrame, items_sale_listings: pd.DataFrame) -> None:
+        """
+        Finds the items which are not in the inventory or on sale anymore, and update the database,
+        setting them all as sold.
+        :param items_in_inventory: dataframe containing all items of this kind in inventory
+        :param items_sale_listings: dataframe containing all items of this kind on sale
+        """
+
+        items_present = list(items_in_inventory['id']) + list(items_sale_listings['id'])
+        items_present = [str(i) for i in items_present]
+        items_in_db = Listing.query_ref(sold=False, on_sale=True).all()
+        elements_sold = [element for element in items_in_db if str(element.item_id) not in items_present]
+        if not elements_sold:
+            logger.info('no elements are were sold. No need to update DB')
+            return
+        logger.info(f'updating {" ".join(str(a) for a in elements_sold)} to Sold because they were sold')
+        for element in elements_sold:
+            element.sold = True
+            element.on_sale = False
+            for el in element.item:
+                el.sold = True
+                el.stale_item_id = True
+
+        Listing.query.session.flush()
+        Item.query.session.flush()
+
+    def _update_items_in_database(self, itemDF):
+        for item in itemDF.itertuples():
+
+            items_already_in_db = Item.query_ref(market_hash_name=item.market_hash_name, item_id=item.id).all()
+            if len(items_already_in_db) == 1:
+                continue
+            item_for_db = Item(
+                item_id=item.id,
+                market_hash_name=item.market_hash_name,
+                account=self._config['username'],
+                appid="730",
+                contextid='2',
+                tradable=bool(item.tradable),
+                marketable=bool(item.marketable),
+                commodity=bool(item.commodity)
+            )
+            Item.query.session.add(item_for_db)
+        Item.query.session.flush()
+
+    def _update_lisings_in_database(self, listings):
+
+        # How do I update the listings to sold?
+
+        for item in listings.itertuples():
+            already_in_db = Listing.query_ref(item.id, sold=False).all()
+            num_records = len(already_in_db)
+            if num_records > 2:
+                raise Exception(f'Integrity Error. More than 1 record with same ItemID and sold=False\n'
+                                f' {already_in_db}')
+            elif num_records == 1:
+                already_in_db[0].listing_id = item.listing_id
+                already_in_db[0].on_sale = True
+            else:
+                item_for_db = Listing(
+                    item_id=item.id,
+                    buyer_pays=decimal.Decimal(item.buyer_pay).quantize(TWODIGITS),
+                    you_receive=decimal.Decimal(item.you_receive).quantize(TWODIGITS),
+                    date=datetime.now(),
+                    sold=False,
+                    currency=self.steam_client.currency.name
+
+                )
+                Listing.query.session.add(item_for_db)
+        Listing.query.session.flush()

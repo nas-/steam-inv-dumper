@@ -41,6 +41,8 @@ def get_items_to_list(name: str, number: int, price: decimal.Decimal, inventory:
     :param inventory: Dataframe containing the inventory
     :return:List of Dicts regarding items to sell. Prices are in cents.
     """
+    # TODO this should come from DB.
+
     inventory = inventory[(inventory['market_hash_name'] == name) & (inventory['marketable'] == 1)]
     _assetsID = list(inventory['id'])
     prices = get_steam_fees_object(price)
