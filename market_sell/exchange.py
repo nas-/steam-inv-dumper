@@ -130,7 +130,6 @@ class Exchange(object):
         if not listings['sell_listings']:
             listings_sell: pd.DataFrame = pd.DataFrame(columns=columns_to_keep)
         else:
-            # ITEMID=listings['sell_listings']['3423280172430835896']['description']['id']
             listings_sell: pd.DataFrame = pd.DataFrame.from_records(
                 pd.json_normalize(list(listings['sell_listings'].values())), columns=columns_to_keep)
         listings_sell = listings_sell.rename(rename, axis=1)
@@ -162,14 +161,11 @@ class Exchange(object):
         Takes an exchange and runs the CheckSold, update database, sell more items cycle.
         Item_id s change when you remove the item from the market.
         """
-        my_items: pd.DataFrame = self.get_own_items()
         my_listings = self.get_own_listings()
-
-        # self._update_lisings_in_database(my_listings)
-        self._update_sold_items(my_items, my_listings)
+        self._update_sold_items(my_listings)
+        #TODO is this always needed?
+        my_items: pd.DataFrame = self.get_own_items()
         self._update_items_in_database(my_items)
-        # TODO itemIDs change when you sell and remove from sale.
-        #
 
         for item in self._config.get('items_to_sell', []):
             # dataframes
@@ -205,7 +201,7 @@ class Exchange(object):
             listItemsToDeList = utilities.get_items_to_delist(item, actions["delist"]["qty"], item_on_sale_listings)
             self.dispatch_delists(item, listItemsToDeList)
 
-    def _update_sold_items(self, items_in_inventory: pd.DataFrame, items_sale_listings: pd.DataFrame) -> None:
+    def _update_sold_items(self, items_sale_listings: pd.DataFrame) -> None:
         """
         Finds the items which are not in the inventory or on sale anymore, and update the database,
         setting them all as sold.
@@ -213,11 +209,9 @@ class Exchange(object):
         :param items_sale_listings: dataframe containing all items of this kind on sale
         """
 
-        # items_in_listings = list(items_in_inventory['id']) + list(items_sale_listings['id'])
         items_in_listings = list(items_sale_listings['id'])
         items_in_listings = [str(i) for i in items_in_listings]
         listings_in_db = Listing.query_ref(sold=False, on_sale=True).all()
-        # item.item_id is str
         for item in listings_in_db:
             # The item is still listed. So not sold.
             if item.item_id in items_in_listings:
@@ -235,30 +229,6 @@ class Exchange(object):
 
         Listing.query.session.flush()
         Item.query.session.flush()
-
-    # def _update_lisings_in_database(self, listings):
-    #     # How do I update the listings to sold?
-    #     for item in listings.itertuples():
-    #         already_in_db = Listing.query_ref(item.id, sold=False).all()
-    #         num_records = len(already_in_db)
-    #         if num_records > 2:
-    #             raise Exception(f'Integrity Error. More than 1 record with same ItemID and sold=False\n'
-    #                             f' {already_in_db}')
-    #         elif num_records == 1:
-    #             already_in_db[0].listing_id = item.listing_id
-    #             already_in_db[0].on_sale = True
-    #         else:
-    #             item_for_db = Listing(
-    #                 item_id=item.id,
-    #                 buyer_pays=decimal.Decimal(item.buyer_pay).quantize(TWODIGITS),
-    #                 you_receive=decimal.Decimal(item.you_receive).quantize(TWODIGITS),
-    #                 date=datetime.now(),
-    #                 sold=False,
-    #                 currency=self.steam_client.currency.name
-    #
-    #             )
-    #             Listing.query.session.add(item_for_db)
-    #     Listing.query.session.flush()
 
     def _update_items_in_database(self, itemDF):
         for item in itemDF.itertuples():

@@ -75,10 +75,10 @@ class CSGOWorker(object):
     def _send(self, s: int, a: int, d: int, m: int) -> dict:
         """
         # Send the item to the game coordinator and return the response data without modifications.
-        :param s:
-        :param a:
-        :param d:
-        :param m:
+        :param s: SteamID (0 if in market)
+        :param a: AssetID Id of the asset.
+        :param d: DickID -
+        :param m: MarketID - Present if element is in market, else 0
         :return:
         """
         # Send heartbeath to check if sessions are alive?

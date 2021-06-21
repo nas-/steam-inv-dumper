@@ -25,5 +25,6 @@ if __name__ == '__main__':
         time.sleep(20)
 
 # TODO remove redundant info from return from GC.
-# TODO cache the Whole inventory. Update it only sometimes.
-# TODO add
+# TODO Add caching to requests for float. probably need to cache parameter A.
+# TODO cache the Whole inventory (Done). Update it only sometimes.
+# TODO place all databases in same folder.
