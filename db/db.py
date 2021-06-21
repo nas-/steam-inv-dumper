@@ -112,7 +112,6 @@ class Item(_DECL_BASE):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
             'item_id': self.item_id,
             'market_hash_name': self.market_hash_name,
             'account': self.account,
@@ -153,7 +152,6 @@ class Listing(_DECL_BASE):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
             'item_id': self.item_id,
             'date': self.date,
             'sold': self.sold,
