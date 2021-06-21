@@ -75,7 +75,10 @@ class SteamLimited(SteamMarket):
         req = requests.get(f'{BASEURL}{params_str}')
         # TODO raise
         req.raise_for_status()
-        req_json = req.json()
+        return req.json()
+
+    @staticmethod
+    def parse_listings_for_item(req_json: dict) -> list[dict]:
         links = []
         if req_json['success'] and req_json['total_count'] > 0:
             for link in req_json['listinginfo']:
