@@ -15,12 +15,12 @@ if __name__ == '__main__':
     setup_logging(0)
     config = load_config('config.json')
     exchange = Exchange(config)
-    #loat_getter = FloatManager(config.get('floats', {}))
+    float_getter = FloatManager(config.get('floats', {}))
     for _ in range(50):
         #exchange.run()
         links = exchange.steam_market.parse_listings_for_item(
-            exchange.steam_market.get_listings_for_item('★ Gut Knife | Doppler (Factory New)', count=10))
-        #results = float_getter.process_links(links)
+            exchange.steam_market.get_listings_for_item('★ Gut Knife | Doppler (Factory New)', count=100))
+        results = float_getter.process_links(links)
         #a = pd.DataFrame.from_records(results)
         time.sleep(20)
 

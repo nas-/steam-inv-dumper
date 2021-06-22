@@ -9,6 +9,7 @@ from csgo.enums import ECsgoGCMsg, EGCBaseClientMsg, GCConnectionStatus
 # pip install git+https://github.com/wearefair/protobuf-to-dict
 from protobuf_to_dict import protobuf_to_dict
 from steam.client import SteamClient
+from db.db import GCItem
 
 from floats_gc import const
 from floats_gc.float_utils import get_skin_data, parse_items_cdn
@@ -173,7 +174,32 @@ class CSGOWorker(object):
         # Get relevant information and returns it.
         :rtype: object
         """
-        iteminfo = self._send(s, a, d, m)
+        item_db = GCItem.query_ref(asset_id=a).all()
+        if not item_db:
+            logger.info(f'Item  {a} not in db')
+            self.last_run = arrow.now().timestamp()
+            iteminfo = self._send(s, a, d, m)
+            item = GCItem(asset_id=a,
+                          item_id=iteminfo.get('itemid'),
+                          defindex=iteminfo.get('defindex'),
+                          paintindex=iteminfo.get('paintindex'),
+                          paintwear=iteminfo.get('paintwear'),
+                          paintseed=iteminfo.get('paintseed'),
+                          killeaterscoretype=iteminfo.get('killeaterscoretype'),
+                          killeatervalue=iteminfo.get('killeatervalue'),
+                          inventory=iteminfo.get('inventory'),
+                          origin=iteminfo.get('origin'),
+                          rarity=iteminfo.get('rarity'),
+                          quality=iteminfo.get('quality'),
+                          )
+            GCItem.query.session.add(item)
+            GCItem.query.session.flush()
+        elif len(item_db) == 1:
+            logger.info(f'item {a} was found in DB')
+            iteminfo = item_db[0].to_json()
+        else:
+            logger.info(f'This should not be happening item {a}')
+            raise Exception
         return self.parse_item_data(iteminfo)
 
     def from_inspect_link(self, url: str) -> dict:
@@ -196,7 +222,6 @@ class CSGOWorker(object):
             # TODO raise a proper exception maybe? Else add a status Success or Status Fail request.
             return {'success': False, 'data': 'Invalid link or Steam is slow.'}
         finally:
-            self.last_run = arrow.now().timestamp()
             self.busy = False
         return {'success': True, 'data': iteminfo}
 
