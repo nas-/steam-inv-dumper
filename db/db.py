@@ -51,6 +51,7 @@ def init_db(db_url: str = _DB_URL) -> None:
     Listing._session = scoped_session(sessionmaker(bind=engine, autoflush=True, autocommit=True))
     Listing.query = Listing._session.query_property()
     Item.query = Listing._session.query_property()
+    GCItem.query = Listing._session.query_property()
     _DECL_BASE.metadata.create_all(engine)
 
 
@@ -66,6 +67,54 @@ class SqliteNumeric(types.TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return decimal.Decimal(value)
+
+
+class GCItem(_DECL_BASE):
+    """
+    Item database model.
+    caches response from GC
+    """
+    __tablename__ = 'GC_items'
+    # 'itemid': 22657987550, 'defindex': 507, 'paintindex': 0, 'rarity': 6, 'quality': 3,
+    # 'paintwear': 1060247478, 'paintseed': 137, 'killeaterscoretype': 0, 'killeatervalue': 0,
+    # 'inventory': 3221225482, 'origin': 8
+    id = Column(Integer, primary_key=True)
+    asset_id = Column(String, nullable=False)  # Parameter A
+    itemid = Column(Integer, nullable=False)
+    defindex = Column(Integer)
+    paintindex = Column(Integer)
+    paintwear = Column(Integer)
+    paintseed = Column(Integer)
+    killeaterscoretype = Column(Integer)
+    killeatervalue = Column(Integer)
+    inventory = Column(Integer)
+    origin = Column(Integer)
+    rarity = Column(Integer)
+    quality = Column(Integer)
+
+    def to_json(self):
+        return {i: k for i, k in vars(self).items() if not i.startswith('_')}
+
+    def __repr__(self) -> str:
+        return str(self.to_json())
+
+    @staticmethod
+    def query_ref(item_id: Optional[str] = None, asset_id: Optional[str] = None) -> Query:
+        """
+        Get all currently active locks for this pair
+        :param asset_id:  assetid to check for. Parameter A
+        :param item_id: Itemid to Check for
+        :rtype: Query
+        """
+        filters = []
+
+        if item_id:
+            filters.append(GCItem.itemid == item_id)
+        if asset_id:
+            filters.append(GCItem.asset_id == asset_id)
+        return GCItem.query.filter(
+            *filters
+        )
 
 
 class Item(_DECL_BASE):
@@ -110,17 +159,8 @@ class Item(_DECL_BASE):
             *filters
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            'item_id': self.item_id,
-            'market_hash_name': self.market_hash_name,
-            'account': self.account,
-            'appid': self.appid,
-            'tradable': self.tradable,
-            'marketable': self.marketable,
-            'commodity': self.commodity
-
-        }
+    def to_json(self):
+        return {i: k for i, k in vars(self).items() if not i.startswith('_')}
 
     def is_sold(self):
         return any(listing.sold for listing in self.listings)
@@ -150,15 +190,8 @@ class Listing(_DECL_BASE):
 
     item = relationship("Item", back_populates="listings")
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            'item_id': self.item_id,
-            'date': self.date,
-            'sold': self.sold,
-            'buyer_pays': self.buyer_pays,
-            'you_receive': self.you_receive
-
-        }
+    def to_json(self):
+        return {i: k for i, k in vars(self).items() if not i.startswith('_')}
 
     @staticmethod
     def query_ref(item_id: Optional[str] = None,

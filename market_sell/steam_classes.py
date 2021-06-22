@@ -93,6 +93,7 @@ class SteamLimited(SteamMarket):
                     insp = inspect.replace(r'%listingid%', listingid).replace('%assetid%', assetid)
                     links.append({'link': insp, 'listingid': listingid, 'price': price})
         elif not req_json['success']:
+            logger.info(f"{req_json['success']=} {req_json.get('message')=}")
             # TODO raise exception
             pass
         elif req_json['total_count'] == 0:

@@ -4,7 +4,6 @@ from datetime import datetime
 from sqlite3 import IntegrityError
 from unittest import TestCase
 
-
 from db.db import Listing, Item, init_db
 
 TWODIGITS = decimal.Decimal('0.01')
@@ -44,6 +43,10 @@ class TestSteamDatabase(TestCase):
         K = Listing.query_ref(item_id='12345').first()
         item_json = K.to_json()
         self.assertDictEqual(item_json, {
+            'listing_id': K.listing_id,
+            'on_sale': K.on_sale,
+            'id': K.id,
+            'currency': K.currency,
             'item_id': K.item_id,
             'date': K.date,
             'sold': K.sold,
@@ -56,6 +59,10 @@ class TestSteamDatabase(TestCase):
         K = Item.query_ref(item_id='12345').first()
         item_json = K.to_json()
         self.assertDictEqual(item_json, {
+            'stale_item_id': K.stale_item_id,
+            'sold': K.sold,
+            'id': K.id,
+            'contextid': K.contextid,
             'item_id': K.item_id,
             'market_hash_name': K.market_hash_name,
             'account': K.account,
