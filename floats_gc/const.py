@@ -61,6 +61,7 @@ doppler = {
     '415': 'Ruby',
     '416': 'Sapphire',
     '417': 'Black Pearl',
+    '617': 'Black Pearl',
     '418': 'Phase 1',
     '419': 'Phase 2',
     '420': 'Phase 3',
@@ -70,7 +71,13 @@ doppler = {
     '570': 'Phase 2',
     '571': 'Phase 3',
     '572': 'Phase 4',
-    '619': 'Sapphire'
+    '619': 'Sapphire',
+    '618': 'Phase 2',
+    '852': 'Phase 1',
+    '854':'Phase 3',
+    '853':'Phase 2',
+    '855':'Phase 4'
+
 }
 
 marbles = {

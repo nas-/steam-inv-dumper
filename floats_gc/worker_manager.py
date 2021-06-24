@@ -164,7 +164,7 @@ class FloatManager(object):
                     not bot.busy
                     and bot.last_run + self._timeout < arrow.now().timestamp()
             ):
-                logger.info(f'dispatched job to bot {bot.username}')
+                logger.debug(f'dispatched job to bot {bot.username}')
                 return bot.from_inspect_link(url)
 
     def _initialize_workers(self) -> Iterable:
