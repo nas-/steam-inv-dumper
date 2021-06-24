@@ -150,21 +150,31 @@ class CSGOWorker(object):
 
         special = None
         if iteminfo['item_name'] == "Marble Fade":
-            logger.info(f"found {iteminfo['item_name']=}")
+            logger.debug(f"found {iteminfo['item_name']=}")
             try:
                 special = const.marbles[iteminfo['weapon_type']].get(str(iteminfo['paintseed']))
             except KeyError:
                 logger.info('Non-indexed %s | Marble Fade' % iteminfo['weapon_type'])
         elif iteminfo['item_name'] == "Fade" and iteminfo['weapon_type'] in const.fades:
-            logger.info(f"found {iteminfo['item_name']=}")
+            logger.debug(f"found {iteminfo['item_name']=}")
             info = const.fades[iteminfo['weapon_type']]
             unscaled = const.order[::info[1]].index(iteminfo['paintseed'])
             scaled = unscaled / 1001
             percentage = round(info[0] + scaled * (100 - info[0]))
             special = str(percentage) + "%"
         elif iteminfo['item_name'] in ["Doppler", "Gamma Doppler"]:
-            logger.info(f"found {iteminfo['item_name']=}")
-            special = const.doppler[iteminfo['paintindex']]
+            logger.debug(f"found {iteminfo['item_name']=}")
+            special = const.doppler.get(iteminfo['paintindex'])
+            if not special:
+                phases = ['phase1', 'phase2', 'phase3', 'phase4', 'ruby_marbleized', 'sapphire_marbleized',
+                          'blackpearl', 'emerald_marbleized']
+                url = iteminfo.get('imageurl')
+                if url:
+                    for phase in phases:
+                        if phase in url:
+                            logging.info(
+                                f"{iteminfo.get('full_item_name')} paintindex {iteminfo['paintindex']} is {phase}")
+                            break
 
         iteminfo['special'] = special
         return iteminfo
@@ -174,13 +184,13 @@ class CSGOWorker(object):
         # Get relevant information and returns it.
         :rtype: object
         """
-        item_db = GCItem.query_ref(asset_id=a).all()
+        item_db = GCItem.query_ref(asset_id=str(a)).all()
         if not item_db:
             logger.info(f'Item  {a} not in db')
             self.last_run = arrow.now().timestamp()
             iteminfo = self._send(s, a, d, m)
             item = GCItem(asset_id=a,
-                          item_id=iteminfo.get('itemid'),
+                          itemid=iteminfo.get('itemid'),
                           defindex=iteminfo.get('defindex'),
                           paintindex=iteminfo.get('paintindex'),
                           paintwear=iteminfo.get('paintwear'),
@@ -203,7 +213,7 @@ class CSGOWorker(object):
         return self.parse_item_data(iteminfo)
 
     def from_inspect_link(self, url: str) -> dict:
-        logger.info(f'Retieving float value trugh account {self._logon_details.get("username")}')
+        logger.debug(f'Retieving float value trugh account {self._logon_details.get("username")}')
         self.busy = True
         match = re.search(r'([SM])(\d+)A(\d+)D(\d+)$', url)
         if match.group(1) == 'S':
