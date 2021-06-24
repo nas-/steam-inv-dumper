@@ -10,12 +10,12 @@
   "market_sell_timeout": 120,
   "username": "nasil2nd",
   "use_cookies": true,
-  "debug": true,
+  "debug": false,
   "db_url": "sqlite:///sales.sqlite",
   "items_to_sell": {
     "CS:GO Weapon Case 2": {
       "quantity": 1,
-      "min_price": 12.40
+      "min_price": 20.40
     },
     "eSports 2013 Winter Case": {
       "quantity": 1,

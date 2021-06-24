@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from floats_gc.float_utils import get_skin_data
+from floats_gc.float_utils import get_skin_data, parse_items_cdn
 from floats_gc.worker_manager import FloatManager
 
 kara_marble_fn_ff1 = {'itemid': 22156537897, 'defindex': 507, 'paintindex': 413, 'rarity': 6, 'quality': 3,
@@ -30,8 +30,16 @@ stat_aug_parsed = {'itemid': 16188702872, 'defindex': '8', 'paintindex': '708', 
                    'rarity_name': 'Mil-Spec Grade', 'quality_name': 'StatTrak™', 'origin_name': 'Found in Crate',
                    'wear_name': 'Well-Worn', 'full_item_name': 'StatTrak™ AUG | Amber Slipstream (Well-Worn)',
                    'special': None}
-st_karmabit = {'itemid': 22657987550, 'defindex': 507, 'paintindex': 0, 'rarity': 6, 'quality': 3, 'paintwear': 1060247478, 'paintseed': 137, 'killeaterscoretype': 0, 'killeatervalue': 0, 'inventory': 3221225482, 'origin': 8}
-st_krambit_parsed = {'itemid': 22657987550, 'defindex': '507', 'paintindex': '0', 'rarity': 6, 'quality': 3, 'paintwear': 1060247478, 'paintseed': 137, 'killeaterscoretype': 0, 'killeatervalue': 0, 'inventory': 3221225482, 'origin': 8, 'floatvalue': 0.6956743001937866, 'imageurl': 'http://media.steampowered.com/apps/730/icons/econ/weapons/base_weapons/weapon_knife_karambit.8b491b581a4b9c7b5298071425f2b29a39a2a12f.png', 'min': 0.06, 'max': 0.8, 'weapon_type': 'Karambit', 'item_name': '-', 'rarity_name': 'Covert', 'quality_name': '★', 'origin_name': 'Found in Crate', 'wear_name': 'Battle-Scarred', 'full_item_name': '★ StatTrak™ Karambit'}
+st_karmabit = {'itemid': 22657987550, 'defindex': 507, 'paintindex': 0, 'rarity': 6, 'quality': 3,
+               'paintwear': 1060247478, 'paintseed': 137, 'killeaterscoretype': 0, 'killeatervalue': 0,
+               'inventory': 3221225482, 'origin': 8}
+st_krambit_parsed = {'itemid': 22657987550, 'defindex': '507', 'paintindex': '0', 'rarity': 6, 'quality': 3,
+                     'paintwear': 1060247478, 'paintseed': 137, 'killeaterscoretype': 0, 'killeatervalue': 0,
+                     'inventory': 3221225482, 'origin': 8, 'floatvalue': 0.6956743001937866,
+                     'imageurl': 'http://media.steampowered.com/apps/730/icons/econ/weapons/base_weapons/weapon_knife_karambit.8b491b581a4b9c7b5298071425f2b29a39a2a12f.png',
+                     'min': 0.06, 'max': 0.8, 'weapon_type': 'Karambit', 'item_name': '-', 'rarity_name': 'Covert',
+                     'quality_name': '★', 'origin_name': 'Found in Crate', 'wear_name': 'Battle-Scarred',
+                     'full_item_name': '★ StatTrak™ Karambit'}
 fm = FloatManager()
 
 
@@ -48,3 +56,14 @@ class TestCSGOWorker(TestCase):
         self.assertDictEqual(graff, graffiti_parsed)
         kara = get_skin_data(st_karmabit, fm.items_game, fm.csgo_english, fm.items_game_cdn, fm.schema)
         self.assertDictEqual(st_krambit_parsed, kara)
+
+    def test_parse_items_cdn(self):
+        text = '''leather_handwraps_handwrap_camo_grey=http://media.steampowered.com/apps/730/icons/econ/default_generated/leather_handwraps_handwrap_camo_grey_light_large.04557b1a8d68bccdd60b18521346091328756ded.png
+leather_handwraps_handwrap_fabric_houndstooth_orange=http://media.steampowered.com/apps/730/icons/econ/default_generated/leather_handwraps_handwrap_fabric_houndstooth_orange_light_large.08248935a70031a18cb246f3e3ac2bc0d8d66339.png
+leather_handwraps_handwrap_fabric_orange_camo=http://media.steampowered.com/apps/730/icons/econ/default_generated/leather_handwraps_handwrap_fabric_orange_camo_light_large.f8453c60f74a846bd3c05310de4f004cd95a1aa2.png
+leather_handwraps_handwrap_leathery_caution=http://media.steampowered.com/apps/730/icons/econ/default_generated/leather_handwraps_handwrap_leathery_caution_light_large.6a56c7aca789dc705530e1720672ee59efd11c61.png'''
+
+        parsed = parse_items_cdn(text)
+        self.assertTrue(isinstance(parsed, dict))
+        self.assertTrue(parsed[
+                            'leather_handwraps_handwrap_camo_grey'] == 'http://media.steampowered.com/apps/730/icons/econ/default_generated/leather_handwraps_handwrap_camo_grey_light_large.04557b1a8d68bccdd60b18521346091328756ded.png')

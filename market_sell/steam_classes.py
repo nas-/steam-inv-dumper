@@ -70,26 +70,46 @@ class SteamLimited(SteamMarket):
         """
         BASEURL = f'https://steamcommunity.com/market/listings/730/{market_hash_name}/render/?query=&'
         # TODO start-end max =100
-        params = {'start': start, 'count': count, 'language': 'english', 'currency': self.currency.value}
-        params_str = urlencode(params)
-        req = requests.get(f'{BASEURL}{params_str}')
+        n_requests = (count - start) // 100
+        collective = []
+        for i in range(n_requests):
+            params = {'start': start + 100 * i, 'count': 100 if n_requests > 1 else count, 'language': 'english',
+                      'currency': self.currency.value}
+            params_str = urlencode(params)
+            req = requests.get(f'{BASEURL}{params_str}')
+            req.raise_for_status()
+            collective.append(req.json())
         # TODO raise
-        req.raise_for_status()
-        req_json = req.json()
+        K = {"listinginfo": {}, "assets": {}}
+        for i in collective:
+            if i['success']:
+                K['total_count'] = i['total_count']
+                K['success'] = True
+                K['listinginfo'] = {**K['listinginfo'], **i['listinginfo']}
+                K['assets'] = {**K['assets'], **i['assets']}
+        print(K['success'])
+        return K
+
+    @staticmethod
+    def parse_listings_for_item(req_json: dict) -> list[dict]:
         links = []
         if req_json['success'] and req_json['total_count'] > 0:
             for link in req_json['listinginfo']:
+                if req_json['listinginfo'][link]['price']==0:
+                    #item was sold.
+                    continue
                 listingid = req_json['listinginfo'][link]['listingid']
                 assetid = req_json['listinginfo'][link]['asset']['id']
                 inspect_pres = req_json['listinginfo'][link]['asset'].get('market_actions')
-                you_get = req_json['listinginfo'][link]['converted_price_per_unit']
-                fee = req_json['listinginfo'][link]['converted_fee_per_unit']
+                you_get = req_json['listinginfo'][link].get('converted_price_per_unit',0)
+                fee = req_json['listinginfo'][link].get('converted_fee_per_unit',0)
                 price = you_get + fee
                 if inspect_pres:
                     inspect = req_json['listinginfo'][link]['asset']['market_actions'][0]['link']
                     insp = inspect.replace(r'%listingid%', listingid).replace('%assetid%', assetid)
                     links.append({'link': insp, 'listingid': listingid, 'price': price})
         elif not req_json['success']:
+            logger.info(f"{req_json['success']=} {req_json.get('message')=}")
             # TODO raise exception
             pass
         elif req_json['total_count'] == 0:

@@ -41,6 +41,8 @@ def get_items_to_list(name: str, number: int, price: decimal.Decimal, inventory:
     :param inventory: Dataframe containing the inventory
     :return:List of Dicts regarding items to sell. Prices are in cents.
     """
+    # TODO this should come from DB.
+
     inventory = inventory[(inventory['market_hash_name'] == name) & (inventory['marketable'] == 1)]
     _assetsID = list(inventory['id'])
     prices = get_steam_fees_object(price)
@@ -265,37 +267,3 @@ def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
         price_data['median_price'] = 0
     return max(price_data['lowest_price'], price_data['median_price']) - decimal.Decimal('0.01')
 
-
-# Remove?
-class PriceOverview:
-    """Represents the data received from https://steamcommunity.com/market/priceoverview.
-    Attributes
-    -------------
-    currency: :class:`str`
-        The currency identifier for the item eg. "$" or "£".
-    volume: :class:`int`
-        The volume of last 24 hours.
-    lowest_price: :class:`decimal.Decimal`
-        The lowest int_price currently present on the market.
-    median_price: :class:`decimal.Decimal`
-        The median int_price observed by the market.
-    """
-    __slots__ = ("currency", "volume", "lowest_price", "median_price")
-
-    def __init__(self, data: dict, currency: Currency):
-        lowest_price = data.get('lowest_price', '')
-        median_prince = data.get('median_price', '')
-        self.lowest_price = convert_string_prices(lowest_price)
-        self.median_price = convert_string_prices(median_prince)
-        self.volume = data.get('volume', 0)
-        self.currency = currency
-
-    def __repr__(self) -> str:
-        resolved = [f"{attr}={getattr(self, attr)!r}" for attr in self.__slots__]
-        return f"<PriceOverview {' '.join(resolved)}>"
-
-
-if __name__ == '__main__':
-    a = {"success": True}
-    c = PriceOverview(a, Currency.RUB)
-    print(c)
