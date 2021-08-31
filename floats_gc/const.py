@@ -74,9 +74,9 @@ doppler = {
     '619': 'Sapphire',
     '618': 'Phase 2',
     '852': 'Phase 1',
-    '854':'Phase 3',
-    '853':'Phase 2',
-    '855':'Phase 4'
+    '854': 'Phase 3',
+    '853': 'Phase 2',
+    '855': 'Phase 4'
 
 }
 

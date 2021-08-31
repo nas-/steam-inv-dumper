@@ -3,6 +3,10 @@ import pickle as cpickle
 from typing import Callable
 from urllib.parse import urlencode
 
+import gevent.monkey
+
+gevent.monkey.patch_all()
+
 import bs4
 import requests
 from backoff import expo, on_exception
@@ -95,14 +99,14 @@ class SteamLimited(SteamMarket):
         links = []
         if req_json['success'] and req_json['total_count'] > 0:
             for link in req_json['listinginfo']:
-                if req_json['listinginfo'][link]['price']==0:
-                    #item was sold.
+                if req_json['listinginfo'][link]['price'] == 0:
+                    # item was sold.
                     continue
                 listingid = req_json['listinginfo'][link]['listingid']
                 assetid = req_json['listinginfo'][link]['asset']['id']
                 inspect_pres = req_json['listinginfo'][link]['asset'].get('market_actions')
-                you_get = req_json['listinginfo'][link].get('converted_price_per_unit',0)
-                fee = req_json['listinginfo'][link].get('converted_fee_per_unit',0)
+                you_get = req_json['listinginfo'][link].get('converted_price_per_unit', 0)
+                fee = req_json['listinginfo'][link].get('converted_fee_per_unit', 0)
                 price = you_get + fee
                 if inspect_pres:
                     inspect = req_json['listinginfo'][link]['asset']['market_actions'][0]['link']

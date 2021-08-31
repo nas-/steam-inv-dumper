@@ -1,7 +1,7 @@
 import decimal
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import sqlalchemy.types as types
 from sqlalchemy import (Boolean, Column, DateTime, Integer, String,
@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 logger = logging.getLogger(__name__)
 
 _DECL_BASE: Any = declarative_base()
-_SQL_DOCS_URL = 'http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls'
+_SQL_DOCS_URL = 'https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls'
 _DB_URL = 'sqlite:///sales.sqlite'
 
 
@@ -198,10 +198,11 @@ class Listing(_DECL_BASE):
                   sold: Optional[bool] = None, on_sale: Optional[bool] = None) -> Query:
         """
         Get all currently active locks for this pair
+        :param on_sale: is item on sale or not
         :param sold: if should search only sold items
         :param item_id: Itemid to Check for
         :rtype: object
-        :param name: Skin to check for.
+
         """
 
         filters = []

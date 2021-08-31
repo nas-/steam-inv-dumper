@@ -16,7 +16,7 @@ if __name__ == '__main__':
     config = load_config('config.json')
     exchange = Exchange(config)
     float_getter = FloatManager(config.get('floats', {}))
-    item='★ Talon Knife | Doppler (Factory New)'
+    item='SSG 08 | Acid Fade (Factory New)'
     for _ in range(50):
         # exchange.run()
         links = exchange.steam_market.parse_listings_for_item(

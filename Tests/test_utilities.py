@@ -1,12 +1,13 @@
 import decimal
+# noinspection PyPep8Naming
 from decimal import Decimal as D
 from unittest import TestCase
-
 import pandas as pd
 
 from market_sell import utilities
 
 TWODIGITS = decimal.Decimal('0.01')
+
 
 class Test(TestCase):
     def test_convert_empty_string(self) -> None:

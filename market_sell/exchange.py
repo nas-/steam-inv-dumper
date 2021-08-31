@@ -38,18 +38,17 @@ class Exchange(object):
                 logger.info('Successfully logged in Steam trough Cookies')
             except ValueError:
                 logger.info('Did not manage to log into Steam trough Cookies')
-                self.steam_client: SteamClientPatched = SteamClientPatched(self._config['apikey'])
-                self.steam_client.login(self._config['username'], self._config['password'],
-                                        json.dumps(self._config['steamguard']))
-                self.steam_client.to_pickle(self._config['username'])
+                self._login_and_save_cookies()
         else:
-            self.steam_client: SteamClientPatched = SteamClientPatched(self._config['apikey'])
-            self.steam_client.login(self._config['username'], self._config['password'],
-                                    json.dumps(self._config['steamguard']))
-            self.steam_client.to_pickle(self._config['username'])
-
+            self._login_and_save_cookies()
         self.steam_market = SteamLimited(self.steam_client.session, self._config['steamguard'],
                                          self.steam_client.session_id, self.steam_client.currency)
+
+    def _login_and_save_cookies(self):
+        self.steam_client: SteamClientPatched = SteamClientPatched(self._config['apikey'])
+        self.steam_client.login(self._config['username'], self._config['password'],
+                                json.dumps(self._config['steamguard']))
+        self.steam_client.to_pickle(self._config['username'])
 
     def _initialize_database(self) -> None:
         debug = self._config.get('debug', True)
@@ -163,7 +162,7 @@ class Exchange(object):
         """
         my_listings = self.get_own_listings()
         self._update_sold_items(my_listings)
-        #TODO is this always needed?
+        # TODO is this always needed?
         my_items: pd.DataFrame = self.get_own_items()
         self._update_items_in_database(my_items)
 
@@ -205,7 +204,6 @@ class Exchange(object):
         """
         Finds the items which are not in the inventory or on sale anymore, and update the database,
         setting them all as sold.
-        :param items_in_inventory: dataframe containing all items of this kind in inventory
         :param items_sale_listings: dataframe containing all items of this kind on sale
         """
 
@@ -270,7 +268,7 @@ class Exchange(object):
                 self.steam_market.cancel_sell_order(str(item_dict['listing_id']))
             record = Listing.query_ref(item_id=item_dict["itemID"]).first()
 
-            #delete this instead?
+            # delete this instead?
             record.on_sale = False
             record.item.stale_item_id = True
 

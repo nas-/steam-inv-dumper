@@ -5,7 +5,7 @@ import re
 from typing import Dict, List
 
 from pandas import DataFrame
-from steampy.models import Currency, GameOptions
+from steampy.models import GameOptions
 
 logger = logging.getLogger(__name__)
 # decimal.getcontext().prec = 3

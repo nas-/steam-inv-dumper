@@ -1,7 +1,6 @@
 import decimal
 import os
 from datetime import datetime
-from sqlite3 import IntegrityError
 from unittest import TestCase
 
 from db.db import Listing, Item, init_db
