@@ -30,3 +30,20 @@ if __name__ == '__main__':
 # TODO place all databases in same folder.
 # TODO add telegram hooks.
 # todo command to checkout info from db.
+
+
+#CZ75-Auto | Distressed (Minimal Wear)
+#SSG 08 | Acid Fade (Factory New)
+#USP-S | Night Ops
+#SG 553 | Damascus Steel
+#SG 553 | Anodized Navy
+#Sawed-Off | Full Stop
+#Sawed-Off | Amber Fade
+#PP-Bizon | Brass
+#P90 | Teardown
+#Glock-18 | Candy Apple
+#Galil AR | Tuxedo
+#Five-SeveN | Silver Quartz
+#FAMAS | Teardown
+
+
