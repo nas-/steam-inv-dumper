@@ -1,5 +1,5 @@
 SQLAlchemy~=1.4.31
-pandas~=1.4.0
+pandas~=1.4.1
 steampy~=0.75
 beautifulsoup4~=4.10.0
 requests~=2.27.1
