@@ -41,8 +41,8 @@ def init_db(db_url: str = _DB_URL) -> None:
 
     try:
         engine = create_engine(db_url, **kwargs)
-    except NoSuchModuleError:
-        raise Exception
+    except NoSuchModuleError as e:
+        raise Exception from e
 
     # https://docs.sqlalchemy.org/en/13/orm/contextual.html#thread-local-scope
     # Scoped sessions proxy requests to the appropriate thread-local session.
@@ -75,9 +75,7 @@ class GCItem(_DECL_BASE):
     caches response from GC
     """
     __tablename__ = 'GC_items'
-    # 'itemid': 22657987550, 'defindex': 507, 'paintindex': 0, 'rarity': 6, 'quality': 3,
-    # 'paintwear': 1060247478, 'paintseed': 137, 'killeaterscoretype': 0, 'killeatervalue': 0,
-    # 'inventory': 3221225482, 'origin': 8
+
     id = Column(Integer, primary_key=True)
     asset_id = Column(String, nullable=False)  # Parameter A
     itemid = Column(Integer, nullable=False)
@@ -222,20 +220,8 @@ class Listing(_DECL_BASE):
 
 if __name__ == '__main__':
     init_db(_DB_URL)
-    # id = Column(Integer, primary_key=True)
-    # item_id = Column(String, nullable=False)
-    # market_hash_name = Column(String, nullable=False)
-    # account = Column(String, nullable=False, default='')
-    # appid = Column(String, nullable=False, default='730')
-    # contextid = Column(String, nullable=False, default='2')
-    # # Bool fields
-    # tradable = Column(Boolean, nullable=False)
-    # marketable = Column(Boolean, nullable=False)
-    # commodity = Column(Boolean, nullable=False)
-    # listings = relationship("Listing", back_populates="item")
-
     for _ in range(5):
-        b = Item(item_id=f"12345{_}", market_hash_name='test', account='nas')
+        b = Item(item_id=f"12345{_}", market_hash_name='test', account='ABC')
         Item.query.session.add(b)
     Item.query.session.flush()
     for _ in range(5):

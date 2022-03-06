@@ -17,33 +17,19 @@ if __name__ == '__main__':
     exchange = Exchange(config)
     float_getter = FloatManager(config.get('floats', {}))
     item='SSG 08 | Acid Fade (Factory New)'
-    for _ in range(50):
-        # exchange.run()
-        links = exchange.steam_market.parse_listings_for_item(
-            exchange.steam_market.get_listings_for_item(item, count=100, start=0))
-        results = float_getter.process_links(links)
-        a = pd.DataFrame.from_records(results)
-        time.sleep(20)
+    exchange.run()
+    # for _ in range(50):
+    #
+    #     links = exchange.steam_market.parse_listings_for_item(
+    #         exchange.steam_market.get_listings_for_item(item, count=100, start=0))
+    #     results = float_getter.process_links(links)
+    #     a = pd.DataFrame.from_records(results)
+    #     time.sleep(20)
 
 # TODO remove redundant info from return from GC.
 # TODO cache the Whole inventory (Done). Update it only sometimes.
 # TODO place all databases in same folder.
 # TODO add telegram hooks.
 # todo command to checkout info from db.
-
-
-#CZ75-Auto | Distressed (Minimal Wear)
-#SSG 08 | Acid Fade (Factory New)
-#USP-S | Night Ops
-#SG 553 | Damascus Steel
-#SG 553 | Anodized Navy
-#Sawed-Off | Full Stop
-#Sawed-Off | Amber Fade
-#PP-Bizon | Brass
-#P90 | Teardown
-#Glock-18 | Candy Apple
-#Galil AR | Tuxedo
-#Five-SeveN | Silver Quartz
-#FAMAS | Teardown
 
 

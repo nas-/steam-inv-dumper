@@ -115,10 +115,9 @@ class SteamLimited(SteamMarket):
         elif not req_json['success']:
             logger.info(f"{req_json['success']=} {req_json.get('message')=}")
             # TODO raise exception
-            pass
         elif req_json['total_count'] == 0:
+            logger.info(f"{req_json['success']=} {req_json.get('message')=} {req_json['total_count']=}")
             # TODO raise exception
-            pass
         return links
 
 
@@ -147,8 +146,8 @@ class SteamClientPatched(SteamClient):
         try:
             with open(f'{filename}.pkl', 'rb') as file:
                 a = cpickle.load(file)
-        except FileNotFoundError:
-            raise ValueError('The session files are not present')
+        except FileNotFoundError as e:
+            raise ValueError('The session files are not present') from e
         if a.is_session_alive():
             return a
         else:
@@ -177,7 +176,7 @@ class SteamClientPatched(SteamClient):
         """
         Returns wallet and balance in one request.
         """
-        url = SteamUrl.STORE_URL + '/account/history/'
+        url = f'{SteamUrl.STORE_URL}/account/history/'
         response = self._session.get(url)
         response_soup = bs4.BeautifulSoup(response.text, "html.parser")
         balance_string = response_soup.find(id='header_wallet_balance').string

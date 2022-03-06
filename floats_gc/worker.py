@@ -1,9 +1,7 @@
 import logging
 import re
-import time
 
 import arrow
-import vdf
 from csgo.client import CSGOClient
 from csgo.enums import ECsgoGCMsg, EGCBaseClientMsg, GCConnectionStatus
 # pip install git+https://github.com/wearefair/protobuf-to-dict
@@ -12,7 +10,7 @@ from steam.client import SteamClient
 from db.db import GCItem
 
 from floats_gc import const
-from floats_gc.float_utils import get_skin_data, parse_items_cdn
+from floats_gc.float_utils import get_skin_data
 
 logger = logging.getLogger("CSGO Worker")
 
@@ -51,11 +49,10 @@ class CSGOWorker(object):
         @cs.once('ready')
         def gc_ready() -> None:
             logger.debug('Launched CSGO')
-            pass
 
         @client.on('disconnected')
         def client_disconnected() -> None:
-            logger.info(f'Disconneced from GC')
+            logger.info('Disconnected from GC')
             logger.debug(f'{client.connected=}')
             logger.debug(f'{client.connection.connected=}')
             if client.relogin_available:
@@ -68,7 +65,7 @@ class CSGOWorker(object):
         def cs_connection_changed(changed: GCConnectionStatus) -> None:
             logger.info(f'Connection changed into {changed.name}')
             if changed.name == 'NO_SESSION':
-                logger.debug(f'Launching CSGO again')
+                logger.debug('Launching CSGO again')
                 self.csgo.exit()
                 self.csgo.launch()
                 self.csgo.wait_event('ready', 60)
@@ -82,11 +79,11 @@ class CSGOWorker(object):
         :param m: MarketID - Present if element is in market, else 0
         :return:
         """
-        # Send heartbeath to check if sessions are alive?
-        logger.debug(f'Sending hearthbeat')
+        # Send heartbeat to check if sessions are alive?
+        logger.debug('Sending heartbeat')
         self.csgo.send(EGCBaseClientMsg.EMsgGCClientHello)
         self.csgo.wait_event('csgo_welcome')
-        logger.debug(f'received event')
+        logger.debug('received event')
 
         self.csgo.send(self.request_method, {
             'param_s': s,
@@ -238,44 +235,3 @@ class CSGOWorker(object):
     @property
     def username(self) -> str:
         return self._logon_details.get('username', '')
-
-
-if __name__ == '__main__':
-    import requests
-
-    k = requests.get(
-        'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/scripts/items/items_game.txt')
-    y = requests.get(
-        'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/resource/csgo_english.txt')
-    z = requests.get(
-        'https://raw.githubusercontent.com/SteamDatabase/GameTracking-CSGO/master/csgo/scripts/items/items_game_cdn.txt')
-    schema_url = 'https://raw.githubusercontent.com/SteamDatabase/SteamTracking/b5cba7a22ab899d6d423380cff21cec707b7c947/ItemSchema/CounterStrikeGlobalOffensive.json'
-    items_game = vdf.loads(k.text)['items_game']
-    csgo_english = vdf.loads(y.text)['lang']['Tokens']
-    items_game_cdn = parse_items_cdn(z.text)
-    schema = requests.get(schema_url).json()['result']
-
-    logging.basicConfig(format="%(asctime)s | %(name)s | thread:%(thread)s | %(levelname)s | %(message)s",
-                        level=logging.DEBUG)
-    logger = logging.getLogger('__name__')
-
-    logger.debug('starting')
-    logon_details = {'username': 'nasdevtest1',
-                     'password': '97Sxoz@^htWRKT$unc!i'}
-    worker = CSGOWorker(logon_details, items_game, csgo_english, items_game_cdn, schema)
-    worker.start()
-
-    el1 = worker.from_inspect_link(
-        'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
-
-    print(el1)
-    time.sleep(300)
-    el1 = worker.from_inspect_link(
-        'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
-
-    print(el1)
-
-    el1 = worker.from_inspect_link(
-        'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20M5451025458192283279A22657987550D11819743846578888255')
-
-    print(el1)

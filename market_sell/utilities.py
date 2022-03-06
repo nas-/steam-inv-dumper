@@ -28,7 +28,7 @@ def convert_string_prices(price: str) -> decimal.Decimal:
         if len(tokens.group(3)) > 2:
             price = price.replace(tokens.group(2), '')
         else:
-            decimal_str = tokens.group(1) + '.' + tokens.group(3)
+            decimal_str = f'{tokens.group(1)}.{tokens.group(3)}'
             return decimal.Decimal(decimal_str).quantize(TWODIGITS)
 
 
@@ -77,7 +77,7 @@ def get_items_to_delist(name: str, number_to_remove: int, listings: DataFrame) -
 
 def get_steam_fees_object(price: decimal.Decimal) -> Dict[str, int]:
     """
-    Given a int_price as Decimal, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
+    Given an int_price as Decimal, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
     :param price: Price for sale (money_to_ask)
     :return: Dict of different prices - in cents.
     keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'
@@ -145,7 +145,7 @@ def actions_to_make_list_delist(num_market_listings: int, min_price_mark_listing
     :param min_allowed_price:  Minimum allowed price
     :return: Actions to make.
     """
-    # Ensure min_allowed_price is not a "ambiguous" price
+    # Ensure min_allowed_price is not an "ambiguous" price
     min_allowed_price_dec = decimal.Decimal(min_allowed_price).quantize(TWODIGITS)
     fees = get_steam_fees_object(min_allowed_price_dec)
     if fees.get('money_to_ask') / 100 < min_allowed_price:
@@ -266,4 +266,3 @@ def get_item_price(steam_market, market_hash_name: str) -> decimal.Decimal:
         price_data['lowest_price'] = convert_string_prices(price_data['lowest_price'])
         price_data['median_price'] = 0
     return max(price_data['lowest_price'], price_data['median_price']) - decimal.Decimal('0.01')
-

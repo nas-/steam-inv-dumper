@@ -18,12 +18,13 @@ def get_wear_name(floatvalue: float, csgo_english: dict) -> str:
     Based on float, gets the correct wear value.
     :param csgo_english: csgo_english vdf parsed
     :param floatvalue: float value of the string, as float
-    :return: Wear value, without parentesis
+    :return: Wear value, without parenthesis
+    # if weapon has no float return ''
     """
+
     for categ in FLOATNAMES:
         if categ['range'][0] < floatvalue <= categ['range'][1]:
             return csgo_english[categ['name']]
-    # if weapon has no float return ''
     return ''
 
 

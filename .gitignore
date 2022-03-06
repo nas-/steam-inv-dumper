@@ -2,4 +2,6 @@
 /.idea/
 /config.json
 *.sqlite
-/nasil2nd.pkl
+*.pkl
+*.txt
+floats_gc/*.json

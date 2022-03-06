@@ -55,10 +55,6 @@ class Exchange(object):
         db_url = self._config.get('db_url', True)
         if debug:
             init_db('sqlite:///sales_debug.sqlite')
-            # Listing.query.delete()
-            # Listing.query.session.flush()
-            # Item.query.delete()
-            # Item.query.session.flush()
         else:
             init_db(db_url)
 
@@ -152,7 +148,7 @@ class Exchange(object):
         if self._heartbeat_interval:
             now = arrow.now().timestamp()
             if (now - self._heartbeat_msg) > self._heartbeat_interval:
-                logger.info(f"Bot heartbeat.")
+                logger.info("Bot heartbeat")
                 self._heartbeat_msg = now
 
     def _sell_loop(self) -> None:
@@ -200,11 +196,12 @@ class Exchange(object):
             listItemsToDeList = utilities.get_items_to_delist(item, actions["delist"]["qty"], item_on_sale_listings)
             self.dispatch_delists(item, listItemsToDeList)
 
-    def _update_sold_items(self, items_sale_listings: pd.DataFrame) -> None:
+    @staticmethod
+    def _update_sold_items(items_sale_listings: pd.DataFrame) -> None:
         """
         Finds the items which are not in the inventory or on sale anymore, and update the database,
         setting them all as sold.
-        :param items_sale_listings: dataframe containing all items of this kind on sale
+        items_sale_listings: dataframe containing all items of this kind on sale
         """
 
         items_in_listings = list(items_sale_listings['id'])
@@ -250,8 +247,8 @@ class Exchange(object):
     def dispatch_delists(self, item: str, to_delist: List) -> None:
         """
         Delists specified items, and updates the DB accordingly.
-        :param item: Item name
-        :param to_delist: list of dicts of items currently on sale which should be delisted.
+        item: Item name
+        to_delist: list of dicts of items currently on sale which should be delisted.
         :return: None
         """
         debug = self._config.get('debug', True)
@@ -260,10 +257,10 @@ class Exchange(object):
 
         for item_dict in to_delist:
             if debug:
-                logger.debug(f'delist items. Debug is True. Updating database only')
+                logger.debug('Delist items. Debug is True. Updating database only')
                 logger.debug(f'{item} cancel_sell_order({str(item_dict["listing_id"])}')
             else:
-                logger.debug(f'delist items. Debug is False. Sending cancel order to steam')
+                logger.debug('Delist items. Debug is False. Sending cancel order to steam')
                 logger.debug(f'{item} - listing_id {str(item_dict["listing_id"])}')
                 self.steam_market.cancel_sell_order(str(item_dict['listing_id']))
             record = Listing.query_ref(item_id=item_dict["itemID"]).first()
@@ -277,8 +274,8 @@ class Exchange(object):
     def dispatch_sales(self, item: str, item_for_sale_list: List) -> None:
         """
         Creates items listing for every specified item.
-        :param item:  Item name
-        :param item_for_sale_list: List of Dicts containing items to sell, and their prices, expressed as cents!
+        item:  Item name
+        item_for_sale_list: List of Dicts containing items to sell, and their prices, expressed as cents!
         :return:
         """
         if not item_for_sale_list:
