@@ -1,4 +1,4 @@
-SQLAlchemy~=1.4.31
+SQLAlchemy~=1.4.32
 pandas~=1.4.1
 steampy~=0.75
 beautifulsoup4~=4.10.0
