@@ -1,0 +1,32 @@
+{
+  "apikey": "",
+  "password": "",
+  "username": "",
+  "steamguard": {
+    "identity_secret": "",
+    "shared_secret": "",
+    "steamid": ""
+  },
+  "heartbeat_interval": 60,
+  "market_sell_timeout": 120,
+  "use_cookies": true,
+  "debug": false,
+  "db_url": "sqlite:///sales.sqlite",
+  "items_to_sell": {
+    "CS:GO Weapon Case 2": {
+      "quantity": 1,
+      "min_price": 50
+    }
+  },
+  "floats": {
+    "timeout": 2,
+    "retrieve_floats": false,
+    "refresh_game_files": true,
+    "float_accounts": [
+      {
+        "username": "",
+        "password": ""
+      }
+    ]
+  }
+}

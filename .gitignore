@@ -1,0 +1,7 @@
+/venv/
+/.idea/
+config.json
+*.sqlite
+*.pkl
+*.txt
+floats_gc/*.json
