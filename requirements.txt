@@ -3,7 +3,7 @@ pandas~=1.4.1
 steampy~=0.75
 beautifulsoup4~=4.10.0
 requests~=2.27.1
-backoff~=1.11.1
+backoff~=2.0.1
 deckar01-ratelimit
 git+https://github.com/wearefair/protobuf-to-dict
 vdf~=3.4
