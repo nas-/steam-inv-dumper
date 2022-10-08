@@ -2,7 +2,7 @@ SQLAlchemy~=1.4.36
 pandas~=1.4.2
 steampy~=0.75
 beautifulsoup4~=4.11.1
-requests~=2.27.1
+requests~=2.28.1
 backoff~=2.0.1
 deckar01-ratelimit
 git+https://github.com/wearefair/protobuf-to-dict
