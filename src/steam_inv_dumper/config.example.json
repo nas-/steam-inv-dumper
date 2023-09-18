@@ -1,0 +1,21 @@
+{
+  "apikey": "",
+  "db_url": "sqlite:///sales.sqlite",
+  "debug": true,
+  "heartbeat_interval": 60,
+  "items_to_sell": {
+    "Snakebite Case": {
+      "min_price": 20.4,
+      "quantity": 1
+    }
+  },
+  "market_sell_timeout": 120,
+  "password": "",
+  "steamguard": {
+    "identity_secret": "",
+    "shared_secret": "",
+    "steamid": ""
+  },
+  "use_cookies": true,
+  "username": ""
+}
