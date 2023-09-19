@@ -1,4 +1,3 @@
-import decimal
 import logging
 from typing import Dict, List
 
@@ -9,7 +8,7 @@ from steam_inv_dumper.utils.data_structures import (
     MarketActionType,
     MyMarketListing,
 )
-from steam_inv_dumper.utils.price_utils import TWODIGITS, get_steam_fees_object
+from steam_inv_dumper.utils.price_utils import get_steam_fees_object
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 def get_items_to_list(
     market_hash_name: str,
     amount: int,
-    price: decimal.Decimal,
+    price: int,
     inventory: List[InventoryItem],
 ) -> List[ListOnMarket]:
     """
@@ -34,11 +33,7 @@ def get_items_to_list(
     :return:List of Dicts regarding items to sell. Prices are in cents.
     """
 
-    inventory = [
-        item
-        for item in inventory
-        if item.marketable is True and item.market_hash_name == market_hash_name
-    ]
+    inventory = [item for item in inventory if item.marketable is True and item.market_hash_name == market_hash_name]
     inventory = sorted(inventory, key=lambda x: x.id)
     prices = get_steam_fees_object(price=price)
 
@@ -59,9 +54,7 @@ def get_items_to_list(
     return items_to_list
 
 
-def get_items_to_delist(
-    market_hash_name: str, amount: int, listings: List[MyMarketListing]
-) -> List[DelistFromMarket]:
+def get_items_to_delist(market_hash_name: str, amount: int, listings: List[MyMarketListing]) -> List[DelistFromMarket]:
     """
     Gets a list of length "number" of items on sale to be removed from sale.
     :param market_hash_name: market hash market_hash_name of item
@@ -69,11 +62,7 @@ def get_items_to_delist(
     :param listings: Dataframe containing the listings.
     :return:List of Dicts regarding items to remove
     """
-    listings = [
-        listing
-        for listing in listings
-        if listing.description.market_hash_name == market_hash_name
-    ]
+    listings = [listing for listing in listings if listing.description.market_hash_name == market_hash_name]
 
     listings_to_be_removed = []
     for temp in listings[:amount]:
@@ -93,11 +82,11 @@ def get_items_to_delist(
 
 def actions_to_make_list_delist(
     num_market_listings: int,
-    min_price_mark_listing: float,
+    min_price_mark_listing: int,
     num_to_sell: int,
     num_in_inventory: int,
-    item_selling_price: decimal.Decimal,
-    min_allowed_price: float,
+    item_selling_price: int,
+    min_allowed_price: int,
 ) -> Dict:
     """
 
@@ -110,12 +99,11 @@ def actions_to_make_list_delist(
     :return: Actions to make.
     """
     # Ensure min_allowed_price is not an "ambiguous" price
-    min_allowed_price_dec = decimal.Decimal(min_allowed_price).quantize(TWODIGITS)
-    fees = get_steam_fees_object(min_allowed_price_dec)
-    if fees.get("money_to_ask") / 100 < min_allowed_price:
-        min_allowed_price = fees.get("money_to_ask") / 100
+    fees = get_steam_fees_object(min_allowed_price)
+    if fees["money_to_ask"] < min_allowed_price:
+        min_allowed_price = fees["money_to_ask"]
 
-    item_selling_price = item_selling_price.quantize(TWODIGITS)
+    item_selling_price = item_selling_price
     actions = {
         "delist": determine_delists(
             num_market_listings,
@@ -142,10 +130,10 @@ def actions_to_make_list_delist(
 
 def determine_delists(
     market_listings: int,
-    min_price_market_listing: float,
+    min_price_market_listing: int,
     max_on_sale: int,
     tot_in_inventory: int,
-    usual_price: decimal.Decimal,
+    usual_price: int,
     min_allowed_price: float,
 ) -> Dict:
     """
@@ -159,16 +147,12 @@ def determine_delists(
     """
 
     # Convertions
-    min_price_market_listing_decimal = decimal.Decimal(
-        min_price_market_listing
-    ).quantize(TWODIGITS)
-    usual_price = decimal.Decimal(usual_price).quantize(TWODIGITS)
-    min_allowed_price_decimal = decimal.Decimal(min_allowed_price).quantize(TWODIGITS)
+    min_price_market_listing_decimal = min_price_market_listing
+    usual_price = usual_price
+    min_allowed_price_decimal = min_allowed_price
 
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
-    imLowesPrice = (
-        usual_price >= min_price_market_listing_decimal >= min_allowed_price_decimal
-    )
+    imLowesPrice = usual_price >= min_price_market_listing_decimal >= min_allowed_price_decimal
 
     price = min_price_market_listing_decimal
     if market_listings == 0:
@@ -203,13 +187,12 @@ def determine_lists(
     market_listings: int,
     max_on_sale: int,
     tot_in_inventory: int,
-    usual_price: decimal.Decimal,
-    min_allowed_price: float,
+    usual_price: int,
+    min_allowed_price: int,
 ) -> dict:
     # Convertions
-    usual_price = decimal.Decimal(usual_price).quantize(TWODIGITS)
-    min_allowed_price_decimal = decimal.Decimal(min_allowed_price).quantize(TWODIGITS)
-
+    usual_price = usual_price
+    min_allowed_price_decimal = min_allowed_price
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
 
     amount = 0
@@ -226,9 +209,7 @@ def determine_lists(
     return {"qty": amount, "int_price": price}
 
 
-def how_many_can_list(
-    num_market_listings: int, number_to_sell: int, num_in_inventory: int
-) -> int:
+def how_many_can_list(num_market_listings: int, number_to_sell: int, num_in_inventory: int) -> int:
     """
     How many items I can actually list on market to have number_to_sell on sale
     :param num_market_listings: Number of own listing on market.

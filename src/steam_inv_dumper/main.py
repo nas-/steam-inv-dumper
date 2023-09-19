@@ -1,11 +1,10 @@
 import logging
 
-from markets.exchange import Exchange
-from utils.configuration import load_config
-from utils.logger import setup_logging
-
-from steam_inv_dumper.markets.steam.client import SteamClientPatched
-from steam_inv_dumper.markets.steam.market import SteamMarketLimited
+from steam_inv_dumper.markets.exchange import Exchange
+from steam_inv_dumper.markets.steam.client import steam_client_factory
+from steam_inv_dumper.markets.steam.market import steam_market_factory
+from steam_inv_dumper.utils.configuration import load_config
+from steam_inv_dumper.utils.logger import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +13,10 @@ def main():
     setup_logging(0)
     config = load_config("config.json")
 
-    inventory_provider = SteamClientPatched.initialize(config=config)
+    inventory_provider = steam_client_factory(config=config)
 
     # Add is_testing state.
-    market_provider = SteamMarketLimited.initialize(
+    market_provider = steam_market_factory(
         config={**inventory_provider.market_params, "steamguard": config["steamguard"]}
     )
 
@@ -27,6 +26,7 @@ def main():
         market_provider=market_provider,
     )
     exchange.run()
+    pass
 
 
 # TODO remove redundant info from return from GC.

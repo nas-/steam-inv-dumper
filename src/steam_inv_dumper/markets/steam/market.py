@@ -1,4 +1,6 @@
+import json
 import logging
+from pathlib import Path
 from typing import Callable, Type, TypeVar
 from urllib.parse import urlencode
 
@@ -12,12 +14,16 @@ from ratelimit import RateLimitException, limits
 from steampy.market import SteamMarket
 from steampy.models import Currency, GameOptions
 
+from steam_inv_dumper.markets.inferfaces.interfaces import MarketProvider
+
 logger = logging.getLogger(__name__)
 
 
 # TODO: proxy all the calls within a common method, and rate limit that instead.
 # Else too much risk to forget adding one over here.
 K = TypeVar("K", bound="SteamMarketLimited")
+T = TypeVar("T", bound="MockedSteamMarket")
+
 
 class SteamMarketLimited(SteamMarket):
     """
@@ -33,7 +39,7 @@ class SteamMarketLimited(SteamMarket):
     ) -> None:
         super().__init__(session)
         self._set_login_executed(steamguard, session_id)
-        self.currency = currency
+        self._currency = currency
 
     @on_exception(expo, RateLimitException, max_tries=8)
     @limits(calls=1, period=3, storage="ratelimit.sqlite", name="short_range")
@@ -123,21 +129,13 @@ class SteamMarketLimited(SteamMarket):
                     continue
                 listingid = req_json["listinginfo"][link]["listingid"]
                 assetid = req_json["listinginfo"][link]["asset"]["id"]
-                inspect_pres = req_json["listinginfo"][link]["asset"].get(
-                    "market_actions"
-                )
-                you_get = req_json["listinginfo"][link].get(
-                    "converted_price_per_unit", 0
-                )
+                inspect_pres = req_json["listinginfo"][link]["asset"].get("market_actions")
+                you_get = req_json["listinginfo"][link].get("converted_price_per_unit", 0)
                 fee = req_json["listinginfo"][link].get("converted_fee_per_unit", 0)
                 price = you_get + fee
                 if inspect_pres:
-                    inspect = req_json["listinginfo"][link]["asset"]["market_actions"][
-                        0
-                    ]["link"]
-                    insp = inspect.replace(r"%listingid%", listingid).replace(
-                        "%assetid%", assetid
-                    )
+                    inspect = req_json["listinginfo"][link]["asset"]["market_actions"][0]["link"]
+                    insp = inspect.replace(r"%listingid%", listingid).replace("%assetid%", assetid)
                     links.append({"link": insp, "listingid": listingid, "price": price})
         elif not req_json["success"]:
             logger.info(f"{req_json['success']=} {req_json.get('message')=}")
@@ -154,17 +152,51 @@ class SteamMarketLimited(SteamMarket):
         :param market_hash_name: Market hash market_hash_name.
         :return:{"success":true,"lowest_price":"6,70€","volume":"7","median_price":"6,70€"}
         """
-        price_data = self.fetch_price(
-            market_hash_name, game=GameOptions.CS, currency=str(self.currency)
-        )
+        price_data = self.fetch_price(market_hash_name, game=GameOptions.CS, currency=str(self.currency))
         if price_data.get("success") is True:
             return price_data
 
     @classmethod
-    def initialize(cls:Type[K], config:dict)->K:
+    def initialize(cls: Type[K], config: dict) -> K:
         return cls(
             session_id=config["session_id"],
             steamguard=config["steamguard"],
             currency=config["currency"],
             session=config["session"],
         )
+
+
+class MockedSteamMarket:
+    def __init__(self):
+        self._test_files_root = Path(__file__).parents[2] / "api_responses"
+        self._currency = Currency.EURO
+
+    @classmethod
+    def initialize(cls: Type[T], config: dict) -> T:
+        return cls()
+
+    def cancel_sell_order(self, sell_listing_id: str) -> None:
+        return
+
+    def create_sell_order(self, assetid: str, game: GameOptions, money_to_receive: str) -> dict:
+        return {}
+
+    @property
+    def currency(self) -> Currency:
+        return self._currency
+
+    def get_item_price(self, market_hash_name: str) -> dict:
+        file_path = self._test_files_root / "get_item_price.json"
+        result = json.loads(file_path.read_text())
+        return result
+
+    def get_my_market_listings(self) -> dict:
+        file_path = self._test_files_root / "get_my_market_listings.json"
+        result = json.loads(file_path.read_text())
+        return result
+
+
+def steam_market_factory(config: dict) -> MarketProvider:
+    if config.get("debug", True) is False:
+        return SteamMarketLimited.initialize(config=config)
+    return MockedSteamMarket.initialize(config=config)

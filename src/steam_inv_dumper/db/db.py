@@ -1,9 +1,6 @@
-import decimal
 import logging
-from datetime import datetime
 from typing import Any, Optional
 
-import sqlalchemy.types as types
 from sqlalchemy import (
     Boolean,
     Column,
@@ -59,77 +56,10 @@ def init_db(db_url: str = _DB_URL) -> None:
     # Scoped sessions proxy requests to the appropriate thread-local session.
     # We should use the scoped_session object - not a seperately initialized version
 
-    Listing._session = scoped_session(
-        sessionmaker(bind=engine, autoflush=True, autocommit=True)
-    )
+    Listing._session = scoped_session(sessionmaker(bind=engine, autoflush=True, autocommit=True))
     Listing.query = Listing._session.query_property()
     Item.query = Listing._session.query_property()
-    GCItem.query = Listing._session.query_property()
     _DECL_BASE.metadata.create_all(engine)
-
-
-# TODO remove this, and use integers.
-# noinspection PyAbstractClass
-class SqliteNumeric(types.TypeDecorator):
-    impl = types.String
-
-    def load_dialect_impl(self, dialect):
-        return dialect.type_descriptor(types.VARCHAR(100))
-
-    def process_bind_param(self, value, dialect):
-        return str(value)
-
-    def process_result_value(self, value, dialect):
-        return decimal.Decimal(value)
-
-
-class GCItem(_DECL_BASE):
-    """
-    Item database model.
-    caches response from GC
-    """
-
-    __tablename__ = "GC_items"
-    # 'itemid': 22657987550, 'defindex': 507, 'paintindex': 0, 'rarity': 6, 'quality': 3,
-    # 'paintwear': 1060247478, 'paintseed': 137, 'killeaterscoretype': 0, 'killeatervalue': 0,
-    # 'inventory': 3221225482, 'origin': 8
-    id = Column(Integer, primary_key=True)
-    asset_id = Column(String, nullable=False)  # Parameter A
-    itemid = Column(Integer, nullable=False)
-    defindex = Column(Integer)
-    paintindex = Column(Integer)
-    paintwear = Column(Integer)
-    paintseed = Column(Integer)
-    killeaterscoretype = Column(Integer)
-    killeatervalue = Column(Integer)
-    inventory = Column(Integer)
-    origin = Column(Integer)
-    rarity = Column(Integer)
-    quality = Column(Integer)
-
-    def to_json(self) -> dict:
-        return {i: k for i, k in vars(self).items() if not i.startswith("_")}
-
-    def __repr__(self) -> str:
-        return str(self.to_json())
-
-    @staticmethod
-    def query_ref(
-        item_id: Optional[str] = None, asset_id: Optional[str] = None
-    ) -> Query:
-        """
-        Get all currently active locks for this pair
-        :param asset_id:  assetid to check for. Parameter A
-        :param item_id: Itemid to Check for
-        :rtype: Query
-        """
-        filters = []
-
-        if item_id:
-            filters.append(GCItem.itemid == item_id)
-        if asset_id:
-            filters.append(GCItem.asset_id == asset_id)
-        return GCItem.query.filter(*filters)
 
 
 class Item(_DECL_BASE):
@@ -194,9 +124,7 @@ class Listing(_DECL_BASE):
     """
 
     __tablename__ = "sales"
-    __table_args__ = (
-        UniqueConstraint("item_id", "sold", "on_sale", name="_itemid_sold_onsale"),
-    )
+    __table_args__ = (UniqueConstraint("item_id", "sold", "on_sale", name="_itemid_sold_onsale"),)
 
     id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
     listing_id = Column(String, unique=True)
@@ -204,8 +132,8 @@ class Listing(_DECL_BASE):
     date = Column(DateTime, nullable=False)
     sold = Column(Boolean, nullable=False, default=False)
     on_sale = Column(Boolean, nullable=False, default=False)
-    buyer_pays = Column(SqliteNumeric(12, 3), nullable=False)
-    you_receive = Column(SqliteNumeric(12, 3), nullable=False)
+    buyer_pays = Column(Integer, nullable=False)
+    you_receive = Column(Integer, nullable=False)
     currency = Column(String, nullable=False, default="EUR")
 
     item = relationship("Item", back_populates="listings")
@@ -239,34 +167,3 @@ class Listing(_DECL_BASE):
 
     def __repr__(self) -> str:
         return str(self.to_json())
-
-
-if __name__ == "__main__":
-    init_db(_DB_URL)
-    # id = Column(Integer, primary_key=True)
-    # item_id = Column(String, nullable=False)
-    # market_hash_name = Column(String, nullable=False)
-    # account = Column(String, nullable=False, default='')
-    # appid = Column(String, nullable=False, default='730')
-    # contextid = Column(String, nullable=False, default='2')
-    # # Bool fields
-    # tradable = Column(Boolean, nullable=False)
-    # marketable = Column(Boolean, nullable=False)
-    # commodity = Column(Boolean, nullable=False)
-    # listings = relationship("Listing", back_populates="item")
-
-    for _ in range(5):
-        b = Item(item_id=f"12345{_}", market_hash_name="test", account="nas")
-        Item.query.session.add(b)
-    Item.query.session.flush()
-    for _ in range(5):
-        a = Listing(
-            date=datetime.now(),
-            item_id="12345",
-            buyer_pays=decimal.Decimal(1.02),
-            you_receive=2,
-        )
-        Listing.query.session.add(a)
-    Listing.query.session.flush()
-    Item.query_ref(item_id="12345").all()
-    pass

@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from decimal import Decimal
 from enum import Enum
 from typing import Literal, Type, TypeVar
 
-from steam_inv_dumper.utils.price_utils import TWODIGITS, convert_string_prices
+from steam_inv_dumper.utils.price_utils import convert_string_prices
 
 T = TypeVar("T", bound="ListOnMarket")
 V = TypeVar("V", bound="DelistFromMarket")
@@ -165,8 +164,8 @@ class MyMarketListing:
     """
 
     listing_id: str
-    buyer_pay: Decimal
-    you_receive: Decimal
+    buyer_pay: int
+    you_receive: int
     created_on: str
     need_confirmation: bool
     description: Description
@@ -186,11 +185,11 @@ class MyMarketListing:
 @dataclass
 class MarketListing:
     listingid: str
-    price: Decimal
-    fee: Decimal
+    price: int
+    fee: int
     currencyid: int
-    converted_price: Decimal
-    converted_fee: Decimal
+    converted_price: int
+    converted_fee: int
     converted_currencyid: int
     asset: Description
 
@@ -200,15 +199,11 @@ class MarketListing:
         object_id = listing_info["asset"]["id"]
         return cls(
             listingid=listing_info["listingid"],
-            price=Decimal.from_float(listing_info["price"] / 100).quantize(TWODIGITS),
-            fee=Decimal(listing_info["fee"] / 100).quantize(TWODIGITS),
+            price=listing_info["price"],
+            fee=listing_info["fee"],
             currencyid=listing_info["currencyid"],
-            converted_price=Decimal(listing_info["converted_price"] / 100).quantize(
-                TWODIGITS
-            ),
-            converted_fee=Decimal(listing_info["converted_fee"] / 100).quantize(
-                TWODIGITS
-            ),
+            converted_price=listing_info["converted_price"],
+            converted_fee=listing_info["converted_fee"],
             converted_currencyid=listing_info["converted_currencyid"],
             asset=Description.from_my_listing_dict(asset_info[object_id]),
         )

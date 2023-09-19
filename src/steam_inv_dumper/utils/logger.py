@@ -5,7 +5,7 @@ from logging.handlers import BufferingHandler
 from typing import Optional
 
 logger = logging.getLogger(__name__)
-LOGFORMAT = "%(asctime)s - %(market_hash_name)s - %(levelname)s - %(message)s"
+LOGFORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Initialize bufferhandler - will be used for /log endpoints
 bufferHandler = BufferingHandler(1000)
@@ -18,23 +18,13 @@ def _set_loggers(verbosity: int = 0, api_verbosity: str = "info") -> None:
     :return: None
     """
 
-    logging.getLogger("requests").setLevel(
-        logging.INFO if verbosity <= 1 else logging.DEBUG
-    )
-    logging.getLogger("urllib3").setLevel(
-        logging.INFO if verbosity <= 1 else logging.DEBUG
-    )
-    logging.getLogger("ccxt.base.exchange").setLevel(
-        logging.INFO if verbosity <= 2 else logging.DEBUG
-    )
+    logging.getLogger("requests").setLevel(logging.INFO if verbosity <= 1 else logging.DEBUG)
+    logging.getLogger("urllib3").setLevel(logging.INFO if verbosity <= 1 else logging.DEBUG)
+    logging.getLogger("ccxt.base.exchange").setLevel(logging.INFO if verbosity <= 2 else logging.DEBUG)
     logging.getLogger("telegram").setLevel(logging.INFO)
 
-    logging.getLogger("werkzeug").setLevel(
-        logging.ERROR if api_verbosity == "error" else logging.INFO
-    )
-    logging.getLogger("selenium.webdriver.remote.remote_connection").setLevel(
-        logging.INFO
-    )
+    logging.getLogger("werkzeug").setLevel(logging.ERROR if api_verbosity == "error" else logging.INFO)
+    logging.getLogger("selenium.webdriver.remote.remote_connection").setLevel(logging.INFO)
 
 
 def get_existing_handlers(handlertype) -> Optional[logging.Handler]:

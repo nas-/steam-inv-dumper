@@ -1,4 +1,3 @@
-from decimal import Decimal as D
 from unittest import TestCase
 
 from steam_inv_dumper.markets.utilities import (
@@ -73,10 +72,8 @@ class TestItemListDelist(TestCase):
             )
         )
 
-        price = D(0.1)
-        output = get_items_to_list(
-            market_hash_name="aaa", amount=1, price=price, inventory=items
-        )
+        price = 10
+        output = get_items_to_list(market_hash_name="aaa", amount=1, price=price, inventory=items)
 
         self.assertEqual(len(output), 1)
         self.assertEqual(
@@ -97,9 +94,7 @@ class TestItemListDelist(TestCase):
                 }
             ],
         )
-        self.assertEqual(
-            output[0].you_receive, str(get_steam_fees_object(price)["you_receive"])
-        )
+        self.assertEqual(output[0].you_receive, str(get_steam_fees_object(price)["you_receive"]))
         self.assertEqual(
             output[0].buyer_pays,
             str(get_steam_fees_object(price)["money_to_ask"]),

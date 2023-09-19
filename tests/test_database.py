@@ -1,11 +1,8 @@
-import decimal
 import os
 from datetime import datetime
 from unittest import TestCase
 
 from steam_inv_dumper.db.db import Item, Listing, init_db
-
-TWODIGITS = decimal.Decimal("0.01")
 
 
 class TestSteamDatabase(TestCase):
@@ -19,8 +16,8 @@ class TestSteamDatabase(TestCase):
         for_db = Listing(
             item_id="12345",
             date=datetime.now(),
-            you_receive=decimal.Decimal(14.30).quantize(decimal.Decimal("0.01")),
-            buyer_pays=decimal.Decimal(14.99).quantize(decimal.Decimal("0.01")),
+            you_receive=1430,
+            buyer_pays=1499,
         )
         item_for_db = Item(item_id="12345", market_hash_name="casekey1")
         Listing.query.session.add(for_db)
@@ -76,11 +73,6 @@ class TestSteamDatabase(TestCase):
             },
         )
 
-    # def test_item_id_constrain(self):
-    #     item_for_db = Item(item_id='12345', market_hash_name='casekey1')
-    #     Item.query.session.add(item_for_db)
-    #     self.assertRaises(IntegrityError, Item.query.session.flush())
-
     def test_select_all_ids(self) -> None:
         K = Item.query_ref(item_id="12345").first()
         self.assertEqual(K.item_id, "12345")
@@ -88,12 +80,8 @@ class TestSteamDatabase(TestCase):
         self.assertEqual(K.market_hash_name, "casekey1")
 
         K = Item.query_ref(market_hash_name="casekey1").first()
-        self.assertEqual(
-            K.listings[0].you_receive, decimal.Decimal("14.30").quantize(TWODIGITS)
-        )
-        self.assertEqual(
-            K.listings[0].buyer_pays, decimal.Decimal("14.99").quantize(TWODIGITS)
-        )
+        self.assertEqual(K.listings[0].you_receive, 1430)
+        self.assertEqual(K.listings[0].buyer_pays, 1499)
         K.sold = True
         Item.query.session.flush()
         self.assertEqual(K.sold, True)
@@ -105,10 +93,5 @@ class TestSteamDatabase(TestCase):
     def test_correct_decimal_precison(self) -> None:
         K = Listing.query_ref(item_id="12345").first()
 
-        self.assertEqual(K.you_receive, decimal.Decimal("14.30").quantize(TWODIGITS))
-        self.assertEqual(K.buyer_pays, decimal.Decimal("14.99").quantize(TWODIGITS))
-
-
-# test_db.query(write_query, list_of_fake_params)
-# results = test_db.query(read_query)
-# assert results = what_the_results_should_be
+        self.assertEqual(K.you_receive, 1430)
+        self.assertEqual(K.buyer_pays, 1499)

@@ -1,19 +1,22 @@
 import json
 import logging
 import pickle as cpickle
+from pathlib import Path
 from typing import Type, TypeVar
 
 import bs4
 import requests
 from steampy.client import SteamClient
-from steampy.models import Currency, SteamUrl
+from steampy.models import Currency, GameOptions, SteamUrl
 
+from steam_inv_dumper.markets.inferfaces.interfaces import InventoryProvider
 from steam_inv_dumper.utils.price_utils import convert_string_prices
 
 logger = logging.getLogger(__name__)
 
 
 T = TypeVar("T", bound="SteamClientPatched")
+M = TypeVar("M", bound="MockedSteamClient")
 
 
 class SteamClientPatched(SteamClient):
@@ -112,3 +115,30 @@ class SteamClientPatched(SteamClient):
             "session_id": self.session_id,
             "currency": self.currency,
         }
+
+
+class MockedSteamClient:
+    def __init__(self):
+        self._test_files_root = Path(__file__).parents[2] / "api_responses"
+        self.currency = Currency.EURO
+
+    @classmethod
+    def initialize(cls: Type[M], config: dict) -> M:
+        return cls()
+
+    def get_my_inventory(self, game: GameOptions) -> dict:
+        file_path = self._test_files_root / "get_my_inventory.json"
+        result = json.loads(file_path.read_text())
+        return result
+
+    @property
+    def market_params(self) -> dict:
+        return {
+            "currency": self.currency,
+        }
+
+
+def steam_client_factory(config: dict) -> InventoryProvider:
+    if config.get("debug", True) is False:
+        return SteamClientPatched.initialize(config=config)
+    return MockedSteamClient.initialize(config=config)
