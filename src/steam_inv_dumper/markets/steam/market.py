@@ -78,7 +78,7 @@ class SteamMarketLimited(SteamMarket):
     def get_listings_for_item(self, market_hash_name, count=10, start=0):
         """
         Gets inspect links from listings from market items.
-        :param market_hash_name: Market hash name of the item.
+        :param market_hash_name: Market hash market_hash_name of the item.
         :param start: Listing starting at
         :param count: Count of listings tor retrieve
         :return: list of inspects links.
@@ -147,7 +147,7 @@ class SteamMarketLimited(SteamMarket):
     def get_item_price(self, market_hash_name: str) -> dict:
         """
         Gets the item int_price from Steam
-        :param market_hash_name: Market hash name.
+        :param market_hash_name: Market hash market_hash_name.
         :return:{"success":true,"lowest_price":"6,70€","volume":"7","median_price":"6,70€"}
         """
         price_data = self.fetch_price(

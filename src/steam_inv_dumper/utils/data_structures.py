@@ -15,25 +15,30 @@ class MarketActionType(Enum):
 class ListOnMarket:
     action_type: MarketActionType.PlaceOnMarket
     assetsID: str
-    name: str
-    you_receive: int
-    buyer_pays: int
+    market_hash_name: str
+    you_receive: str
+    buyer_pays: str
 
     @classmethod
     def from_dict(cls, dictionary: dict):
+        if isinstance(dictionary["you_receive"], float):
+            raise Exception("Needs to be int, or str")
+        if isinstance(dictionary["buyer_pays"], float):
+            raise Exception("Needs to be int, or str")
+
         return cls(
             action_type=dictionary["action_type"],
             assetsID=dictionary["assetsID"],
-            name=dictionary["name"],
-            you_receive=int(dictionary["you_receive"]),
-            buyer_pays=int(dictionary["buyer_pays"]),
+            market_hash_name=dictionary["market_hash_name"],
+            you_receive=str(dictionary["you_receive"]),
+            buyer_pays=str(dictionary["buyer_pays"]),
         )
 
 
 @dataclass
 class DelistFromMarket:
     action_type: MarketActionType.RemoveFromMarket
-    name: str
+    market_hash_name: str
     itemID: str
     Unowned_itemID: str
     listing_id: str
@@ -42,7 +47,7 @@ class DelistFromMarket:
     def from_dict(cls, dictionary: dict):
         return cls(
             action_type=dictionary["action_type"],
-            name=dictionary["name"],
+            market_hash_name=dictionary["market_hash_name"],
             itemID=dictionary["itemID"],
             Unowned_itemID=dictionary["Unowned_itemID"],
             listing_id=dictionary["listing_id"],
@@ -58,7 +63,6 @@ class InventoryItem:
     currency: int
     background_color: str
     tradable: int
-    name: str
     name_color: str
     type: str
     market_name: str
@@ -82,7 +86,6 @@ class InventoryItem:
             amount=dictionary["amount"],
             background_color=dictionary["background_color"],
             tradable=bool(dictionary["tradable"]),
-            name=dictionary["name"],
             name_color=dictionary["name_color"],
             type=dictionary["type"],
             market_name=dictionary["market_name"],
@@ -134,7 +137,7 @@ class Description:
             unowned_contextid=dictionary["unowned_contextid"],
             background_color=dictionary["background_color"],
             tradable=bool(dictionary["tradable"]),
-            name=dictionary["name"],
+            name=dictionary["market_hash_name"],
             name_color=dictionary["name_color"],
             type=dictionary["type"],
             market_name=dictionary["market_name"],

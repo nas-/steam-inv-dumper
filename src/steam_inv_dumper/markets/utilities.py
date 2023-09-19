@@ -20,12 +20,15 @@ logger = logging.getLogger(__name__)
 
 
 def get_items_to_list(
-    name: str, number: int, price: decimal.Decimal, inventory: List[InventoryItem]
+    market_hash_name: str,
+    amount: int,
+    price: decimal.Decimal,
+    inventory: List[InventoryItem],
 ) -> List[ListOnMarket]:
     """
     Gets a list of length "number" of items in inventory to be put on sale
-    :param name: market hash name of item
-    :param number: Number of items to list.
+    :param market_hash_name: market hash market_hash_name of item
+    :param amount: Number of items to list.
     :param price: money_to_ask of items to list as Decimal.Decimal
     :param inventory: Dataframe containing the inventory
     :return:List of Dicts regarding items to sell. Prices are in cents.
@@ -34,18 +37,18 @@ def get_items_to_list(
     inventory = [
         item
         for item in inventory
-        if item.marketable is True and item.market_hash_name == name
+        if item.marketable is True and item.market_hash_name == market_hash_name
     ]
     inventory = sorted(inventory, key=lambda x: x.id)
     prices = get_steam_fees_object(price=price)
 
     items_to_list = []
-    for item in inventory[:number]:
+    for item in inventory[:amount]:
         items_to_list.append(
             ListOnMarket.from_dict(
                 {
                     "action_type": MarketActionType.PlaceOnMarket,
-                    "name": item.market_hash_name,
+                    "market_hash_name": item.market_hash_name,
                     "assetsID": item.id,
                     "you_receive": prices["you_receive"],
                     "buyer_pays": prices["money_to_ask"],
@@ -57,26 +60,28 @@ def get_items_to_list(
 
 
 def get_items_to_delist(
-    name: str, number_to_remove: int, listings: List[MyMarketListing]
+    market_hash_name: str, amount: int, listings: List[MyMarketListing]
 ) -> List[DelistFromMarket]:
     """
     Gets a list of length "number" of items on sale to be removed from sale.
-    :param name: market hash name of item
-    :param number_to_remove: Number of items to remove.
+    :param market_hash_name: market hash market_hash_name of item
+    :param amount: Number of items to remove.
     :param listings: Dataframe containing the listings.
     :return:List of Dicts regarding items to remove
     """
     listings = [
-        listing for listing in listings if listing.description.market_hash_name == name
+        listing
+        for listing in listings
+        if listing.description.market_hash_name == market_hash_name
     ]
 
     listings_to_be_removed = []
-    for temp in listings[:number_to_remove]:
+    for temp in listings[:amount]:
         listings_to_be_removed.append(
             DelistFromMarket.from_dict(
                 {
                     "action_type": MarketActionType.RemoveFromMarket,
-                    "name": temp.description.market_hash_name,
+                    "market_hash_name": temp.description.market_hash_name,
                     "listing_id": temp.listing_id,
                     "itemID": temp.description.id,
                     "Unowned_itemID": temp.description.unowned_id,
@@ -187,7 +192,7 @@ def determine_delists(
         else:
             amount = market_listings
 
-    # Guard cause. Delisining <0
+    # Guard cause. Delistining <0
     if amount < 0:
         amount = 0
 

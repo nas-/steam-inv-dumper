@@ -188,7 +188,7 @@ class Item(_DECL_BASE):
 class Listing(_DECL_BASE):
     """
     Listing database model.
-    id text,date int, name text,sold bool, qty real,'
+    id text,date int, market_hash_name text,sold bool, qty real,'
                                 'buyer_pays real, you_receive real
     """
 

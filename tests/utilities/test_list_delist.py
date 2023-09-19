@@ -28,11 +28,10 @@ DESCRIPTION = {
     "unowned_contextid": "unowned_contextid",
     "background_color": "background_color",
     "tradable": "tradable",
-    "name": "name",
+    "market_hash_name": "market_hash_name",
     "name_color": "name_color",
     "type": "type",
     "market_name": "market_name",
-    "market_hash_name": "market_hash_name",
     "commodity": "commodity",
     "market_tradable_restriction": "market_tradable_restriction",
     "marketable": "marketable",
@@ -75,27 +74,35 @@ class TestItemListDelist(TestCase):
         )
 
         price = D(0.1)
-        output = get_items_to_list(name="aaa", number=1, price=price, inventory=items)
+        output = get_items_to_list(
+            market_hash_name="aaa", amount=1, price=price, inventory=items
+        )
 
         self.assertEqual(len(output), 1)
         self.assertEqual(
             [
                 {
-                    "name": output[0].name,
+                    "market_hash_name": output[0].market_hash_name,
                     "assetsID": output[0].assetsID,
                     "you_receive": output[0].you_receive,
                     "buyer_pays": output[0].buyer_pays,
                 }
             ],
-            [{"name": "aaa", "assetsID": "100", "you_receive": 8, "buyer_pays": 10}],
+            [
+                {
+                    "market_hash_name": "aaa",
+                    "assetsID": "100",
+                    "you_receive": "8",
+                    "buyer_pays": "10",
+                }
+            ],
         )
         self.assertEqual(
-            output[0].you_receive,
-            get_steam_fees_object(price)["you_receive"],
+            output[0].you_receive, str(get_steam_fees_object(price)["you_receive"])
         )
         self.assertEqual(
             output[0].buyer_pays,
-            get_steam_fees_object(price)["money_to_ask"],
+            str(get_steam_fees_object(price)["money_to_ask"]),
         )
 
     def test_get_list_items_to_de_list(self) -> None:
@@ -156,20 +163,20 @@ class TestItemListDelist(TestCase):
 
         output = get_items_to_delist("aaa", 2, data)
 
-        self.assertEqual(all(a.name == "aaa" for a in output), True)
+        self.assertEqual(all(a.market_hash_name == "aaa" for a in output), True)
         self.assertEqual(
             output,
             [
                 DelistFromMarket(
                     action_type=MarketActionType.RemoveFromMarket,
-                    name="aaa",
+                    market_hash_name="aaa",
                     itemID="desc1",
                     Unowned_itemID="300",
                     listing_id="100",
                 ),
                 DelistFromMarket(
                     action_type=MarketActionType.RemoveFromMarket,
-                    name="aaa",
+                    market_hash_name="aaa",
                     itemID="desc3",
                     Unowned_itemID="300",
                     listing_id="1000",

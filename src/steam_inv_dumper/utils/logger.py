@@ -5,7 +5,7 @@ from logging.handlers import BufferingHandler
 from typing import Optional
 
 logger = logging.getLogger(__name__)
-LOGFORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOGFORMAT = "%(asctime)s - %(market_hash_name)s - %(levelname)s - %(message)s"
 
 # Initialize bufferhandler - will be used for /log endpoints
 bufferHandler = BufferingHandler(1000)

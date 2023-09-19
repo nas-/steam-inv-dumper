@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import List
 
 import arrow
-import pandas as pd
 from steampy.models import GameOptions
 
 from steam_inv_dumper.db.db import Item, Listing, init_db
@@ -17,10 +16,13 @@ from steam_inv_dumper.markets.utilities import (
     get_items_to_delist,
     get_items_to_list,
 )
-from steam_inv_dumper.utils.data_structures import InventoryItem, MyMarketListing
+from steam_inv_dumper.utils.data_structures import (
+    DelistFromMarket,
+    InventoryItem,
+    ListOnMarket,
+    MyMarketListing,
+)
 from steam_inv_dumper.utils.price_utils import convert_string_prices
-
-TWODIGITS = decimal.Decimal("0.01")
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +115,7 @@ class Exchange:
     def get_item_price(self, market_hash_name: str) -> decimal.Decimal:
         """
         Gets the item int_price from Steam
-        :param market_hash_name: Market hash name.
+        :param market_hash_name: Market hash market_hash_name.
         :return: Decimal.
         """
         price_data = self._get_test_or_prod_result(
@@ -138,7 +140,7 @@ class Exchange:
     def _get_test_or_prod_result(self, api_path: str, *args, **kwargs) -> dict:
         """
         Returns the results, calling the API if in production or getting the static file if in testing mode.
-        :param api_path: str name of the file, or method to call
+        :param api_path: str market_hash_name of the file, or method to call
         :return:
         """
         if self.is_testing:
@@ -148,7 +150,6 @@ class Exchange:
             result = getattr(self.steam_market, api_path)(*args, **kwargs)
         return result
 
-    # TODO remove some unused columns and/or get rid of dataframe
     def get_own_listings(self) -> List[MyMarketListing]:
         """
         Gets all items currently listed on the market
@@ -183,22 +184,28 @@ class Exchange:
         Item_id s change when you remove the item from the market.
         """
         my_listings = self.get_own_listings()
-        # if not self.is_testing:
-        #     self._update_sold_items(my_listings)
+        if not self.is_testing:
+            self._update_sold_items(items_sale_listings=my_listings)
         # TODO is this always needed?
         my_items = self.get_own_items()
-        # if not self.is_testing:
-        #     self._update_items_in_database(my_items)
+        if not self.is_testing:
+            self._update_items_in_database(inventory_items_list=my_items)
 
-        for item in self._config.get("items_to_sell", []):
+        # TODO basically this is all business logic. I need to move it away...
+        for market_hash_name, sell_options in self._config.get(
+            "items_to_sell", {}
+        ).items():
             # dataframes
+
             item_on_sale_listings = [
                 listing
                 for listing in my_listings
-                if listing.description.market_hash_name == item
+                if listing.description.market_hash_name == market_hash_name
             ]
             items_in_inventory = [
-                my_item for my_item in my_items if my_item.market_hash_name == item
+                my_item
+                for my_item in my_items
+                if my_item.market_hash_name == market_hash_name
             ]
             if item_on_sale_listings:
                 min_price_already_on_sale = min(
@@ -210,76 +217,79 @@ class Exchange:
             # Update sales listings.
             # define amounts
             amount_in_inventory = len(items_in_inventory)
-            amount_to_sell = int(self.items_to_sell[item].get("quantity", 0))
+            amount_to_sell = int(sell_options.get("quantity", 0))
             amount_on_sale = len(item_on_sale_listings)
             # define prices
             # TODO see if item_selling_price,min_allowed_price_decimal can be merged here into a single variable
-            min_allowed_price = self.items_to_sell[item]["min_price"]
-            sellingPrice = self.get_item_price(market_hash_name=item)
+            min_allowed_price = sell_options["min_price"]
+            selling_price = self.get_item_price(market_hash_name=market_hash_name)
 
             # TODO refactor with DataClasses.
             actions = actions_to_make_list_delist(
                 num_market_listings=amount_on_sale,
                 num_in_inventory=amount_in_inventory,
                 min_price_mark_listing=min_price_already_on_sale,
-                item_selling_price=sellingPrice,
+                item_selling_price=selling_price,
                 num_to_sell=amount_to_sell,
                 min_allowed_price=min_allowed_price,
             )
-            logger.info(f"{item}  {actions}")
+            logger.info(f"{market_hash_name}  {actions}")
 
             # Items to sell
-            listItemsToSell = get_items_to_list(
-                item,
-                actions["list"]["qty"],
-                actions["list"]["int_price"],
+            list_items_to_sell = get_items_to_list(
+                market_hash_name=market_hash_name,
+                amount=actions["list"]["qty"],
+                price=actions["list"]["int_price"],
                 inventory=items_in_inventory,
             )
             if not self.is_testing:
-                self.dispatch_sales(item, listItemsToSell)
+                self.dispatch_sales(item_for_sale_list=list_items_to_sell)
 
             # Items to delete
-            listItemsToDeList = get_items_to_delist(
-                item, actions["delist"]["qty"], item_on_sale_listings
+            list_items_to_delist = get_items_to_delist(
+                market_hash_name=market_hash_name,
+                amount=actions["delist"]["qty"],
+                listings=item_on_sale_listings,
             )
             if not self.is_testing:
-                self.dispatch_delists(item, listItemsToDeList)
+                self.dispatch_delists(to_delist=list_items_to_delist)
             pass
 
-    def _update_sold_items(self, items_sale_listings: pd.DataFrame) -> None:
+    def _update_sold_items(self, items_sale_listings: list[MyMarketListing]) -> None:
         """
         Finds the items which are not in the inventory or on sale anymore, and update the database,
         setting them all as sold.
         :param items_sale_listings: dataframe containing all items of this kind on sale
         """
 
-        items_in_listings = list(items_sale_listings["id"])
-        items_in_listings = [str(i) for i in items_in_listings]
+        items_in_listings = [item.description.id for item in items_sale_listings]
         listings_in_db = Listing.query_ref(sold=False, on_sale=True).all()
-        for item in listings_in_db:
+        for item_in_db in listings_in_db:
             # The item is still listed. So not sold.
-            if item.item_id in items_in_listings:
-                if not item.listing_id:
-                    logger.info(f"Updating {item.item.market_hash_name} listing_id")
-                    listing_id = (
-                        items_sale_listings[items_sale_listings["id"] == item.item_id]
-                        .iloc[0]
-                        .listing_id
+            if item_in_db.item_id in items_in_listings:
+                if not item_in_db.listing_id:
+                    logger.info(
+                        f"Updating {item_in_db.item.market_hash_name} listing_id"
                     )
-                    item.listing_id = listing_id
+                    listing_id = [
+                        listing.listing_id
+                        for listing in items_sale_listings
+                        if listing.description.id == item_in_db.item_id
+                    ][0]
+                    item_in_db.listing_id = listing_id
             else:
-                logger.info(f"Updating {item.item.market_hash_name} to sold")
+                logger.info(f"Updating {item_in_db.item.market_hash_name} to sold")
                 # item was sold.
-                item.sold = True
-                item.on_sale = False
-                item.item.sold = True
-                item.item.stale_item_id = True
+                item_in_db.sold = True
+                item_in_db.on_sale = False
+                item_in_db.item.sold = True
+                item_in_db.item.stale_item_id = True
 
         Listing.query.session.flush()
         Item.query.session.flush()
 
-    def _update_items_in_database(self, itemDF):
-        for item in itemDF.itertuples():
+    def _update_items_in_database(self, inventory_items_list: list[InventoryItem]):
+        for item in inventory_items_list:
             items_already_in_db = Item.query_ref(
                 market_hash_name=item.market_hash_name, item_id=item.id
             ).all()
@@ -289,37 +299,37 @@ class Exchange:
                 item_id=item.id,
                 market_hash_name=item.market_hash_name,
                 account=self._config["username"],
-                appid="730",
-                contextid="2",
-                tradable=bool(item.tradable),
-                marketable=bool(item.marketable),
-                commodity=bool(item.commodity),
+                appid=item.appid,
+                contextid=item.contextid,
+                tradable=item.tradable,
+                marketable=item.marketable,
+                commodity=item.commodity,
             )
             Item.query.session.add(item_for_db)
         Item.query.session.flush()
 
-    def dispatch_delists(self, item: str, to_delist: List) -> None:
+    def dispatch_delists(self, to_delist: list[DelistFromMarket]) -> None:
         """
         Delists specified items, and updates the DB accordingly.
-        :param item: Item name
         :param to_delist: list of dicts of items currently on sale which should be delisted.
         :return: None
         """
-        debug = self._config.get("debug", True)
         if not to_delist:
             return
 
-        for item_dict in to_delist:
-            if debug:
+        for item in to_delist:
+            if self.is_testing:
                 logger.debug("delist items. Debug is True. Updating database only")
-                logger.debug(f'{item} cancel_sell_order({str(item_dict["listing_id"])}')
+                logger.debug(
+                    f"{item.market_hash_name} cancel_sell_order({item.listing_id}"
+                )
             else:
                 logger.debug(
                     "delist items. Debug is False. Sending cancel order to steam"
                 )
-                logger.debug(f'{item} - listing_id {str(item_dict["listing_id"])}')
-                self.steam_market.cancel_sell_order(str(item_dict["listing_id"]))
-            record = Listing.query_ref(item_id=item_dict["itemID"]).first()
+                logger.debug(f"{item.market_hash_name} - listing_id {item.listing_id}")
+                self.steam_market.cancel_sell_order(item.listing_id)
+            record = Listing.query_ref(item_id=item.itemID).first()
 
             # delete this instead?
             record.on_sale = False
@@ -327,41 +337,39 @@ class Exchange:
 
         Listing.query.session.flush()
 
-    def dispatch_sales(self, item: str, item_for_sale_list: List) -> None:
+    def dispatch_sales(self, item_for_sale_list: List[ListOnMarket]) -> None:
         """
         Creates items listing for every specified item.
-        :param item:  Item name
         :param item_for_sale_list: List of Dicts containing items to sell, and their prices, expressed as cents!
         :return:
         """
         if not item_for_sale_list:
             return
-        debug = self._config.get("debug", True)
         for element in item_for_sale_list:
-            if debug:
+            if self.is_testing:
                 logger.debug(
-                    f'{item} create_sell_order({str(element["assetsID"])} )'
-                    f',money_to_receive={element["you_receive"]} buyer_pays {element["buyer_pays"]}'
+                    f"{element.market_hash_name} create_sell_order({element.assetsID} )"
+                    f",money_to_receive={element.you_receive} buyer_pays {element.buyer_pays}"
                 )
             else:
-                logger.debug(f"{item} creating real sell order")
+                logger.debug(f"{element.market_hash_name} creating real sell order")
                 self.steam_market.create_sell_order(
-                    str(element["assetsID"]),
+                    assetid=element.assetsID,
                     game=GameOptions.CS,
-                    money_to_receive=str(int(element["you_receive"])),
+                    money_to_receive=element.you_receive,
                 )
-                # {'success': True}
 
             # Element ready for DB
-            buyer_pays = decimal.Decimal(element["buyer_pays"] / 100).quantize(
+            # TODO I should store the amounts in cents and that's it....
+            buyer_pays = decimal.Decimal(int(element.buyer_pays) / 100).quantize(
                 decimal.Decimal("0.01")
             )
-            you_receive = decimal.Decimal(element["you_receive"] / 100).quantize(
+            you_receive = decimal.Decimal(int(element.you_receive) / 100).quantize(
                 decimal.Decimal("0.01")
             )
             for_db = Listing(
-                item_id=element["assetsID"],
-                date=datetime.now(),
+                item_id=element.assetsID,
+                date=datetime.utcnow(),
                 sold=False,
                 on_sale=True,
                 buyer_pays=buyer_pays,

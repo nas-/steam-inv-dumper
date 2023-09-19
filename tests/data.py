@@ -361,7 +361,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -409,7 +408,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -457,7 +455,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -505,7 +502,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -553,7 +549,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -601,7 +596,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -649,7 +643,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -697,7 +690,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -746,7 +738,6 @@ listings = {
                         }
                     ],
                     "fraudwarnings": ["Name Tag: ''The House Edge''"],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
@@ -794,7 +785,6 @@ listings = {
                             "name": "Inspect in Game...",
                         }
                     ],
-                    "name": "★ Gut Knife | Doppler",
                     "name_color": "8650AC",
                     "type": "★ Covert Knife",
                     "market_name": "★ Gut Knife | Doppler (Factory New)",
