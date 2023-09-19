@@ -68,6 +68,7 @@ def init_db(db_url: str = _DB_URL) -> None:
     _DECL_BASE.metadata.create_all(engine)
 
 
+# TODO remove this, and use integers.
 # noinspection PyAbstractClass
 class SqliteNumeric(types.TypeDecorator):
     impl = types.String
@@ -106,7 +107,7 @@ class GCItem(_DECL_BASE):
     rarity = Column(Integer)
     quality = Column(Integer)
 
-    def to_json(self):
+    def to_json(self) -> dict:
         return {i: k for i, k in vars(self).items() if not i.startswith("_")}
 
     def __repr__(self) -> str:
@@ -175,7 +176,7 @@ class Item(_DECL_BASE):
             filters.append(Item.item_id == item_id)
         return Item.query.filter(*filters)
 
-    def to_json(self):
+    def to_json(self) -> dict:
         return {i: k for i, k in vars(self).items() if not i.startswith("_")}
 
     def is_sold(self):

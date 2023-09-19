@@ -4,13 +4,28 @@ from markets.exchange import Exchange
 from utils.configuration import load_config
 from utils.logger import setup_logging
 
+from steam_inv_dumper.markets.steam.client import SteamClientPatched
+from steam_inv_dumper.markets.steam.market import SteamMarketLimited
+
 logger = logging.getLogger(__name__)
 
 
 def main():
     setup_logging(0)
     config = load_config("config.json")
-    exchange = Exchange(config)
+
+    inventory_provider = SteamClientPatched.initialize(config=config)
+
+    # Add is_testing state.
+    market_provider = SteamMarketLimited.initialize(
+        config={**inventory_provider.market_params, "steamguard": config["steamguard"]}
+    )
+
+    exchange = Exchange(
+        config=config,
+        inventory_provider=inventory_provider,
+        market_provider=market_provider,
+    )
     exchange.run()
 
 

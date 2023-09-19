@@ -1,5 +1,5 @@
 import logging
-from typing import Callable
+from typing import Callable, Type, TypeVar
 from urllib.parse import urlencode
 
 import requests
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: proxy all the calls within a common method, and rate limit that instead.
 # Else too much risk to forget adding one over here.
-
+K = TypeVar("K", bound="SteamMarketLimited")
 
 class SteamMarketLimited(SteamMarket):
     """
@@ -48,6 +48,10 @@ class SteamMarketLimited(SteamMarket):
             return out
 
         return new_func
+
+    @property
+    def currency(self):
+        return self.currency
 
     def __getattribute__(self, item: str) -> Callable:
         """
@@ -155,3 +159,12 @@ class SteamMarketLimited(SteamMarket):
         )
         if price_data.get("success") is True:
             return price_data
+
+    @classmethod
+    def initialize(cls:Type[K], config:dict)->K:
+        return cls(
+            session_id=config["session_id"],
+            steamguard=config["steamguard"],
+            currency=config["currency"],
+            session=config["session"],
+        )

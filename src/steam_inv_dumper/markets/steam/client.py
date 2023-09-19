@@ -1,4 +1,7 @@
+import json
+import logging
 import pickle as cpickle
+from typing import Type, TypeVar
 
 import bs4
 import requests
@@ -6,6 +9,11 @@ from steampy.client import SteamClient
 from steampy.models import Currency, SteamUrl
 
 from steam_inv_dumper.utils.price_utils import convert_string_prices
+
+logger = logging.getLogger(__name__)
+
+
+T = TypeVar("T", bound="SteamClientPatched")
 
 
 class SteamClientPatched(SteamClient):
@@ -26,7 +34,7 @@ class SteamClientPatched(SteamClient):
             cpickle.dump(self, file)
 
     @classmethod
-    def from_pickle(cls, filename):
+    def from_pickle(cls: Type[T], filename: str) -> T:
         """
         Method to reload the class from its own pickle file
         """
@@ -72,3 +80,35 @@ class SteamClientPatched(SteamClient):
         choices = {"pуб.": Currency.RUB, "€": Currency.EURO, "USD": Currency.USD}
         currency = [key for key in choices if key in balance_string]
         return balance, choices.get(currency[0], "")
+
+    @staticmethod
+    def _login_and_save_cookies(config: dict) -> "SteamClientPatched":
+        steam_client = SteamClientPatched(config["apikey"])
+        steam_client.login(
+            config["username"],
+            config["password"],
+            json.dumps(config["steamguard"]),
+        )
+        steam_client.to_pickle(config["username"])
+        return steam_client
+
+    @classmethod
+    def initialize(cls: Type[T], config: dict) -> T:
+        if config.get("use_cookies", False):
+            try:
+                steam_client = SteamClientPatched.from_pickle(config["username"])
+                logger.info("Successfully logged in Steam trough Cookies")
+            except ValueError:
+                logger.info("Did not manage to log into Steam trough Cookies")
+                steam_client = SteamClientPatched._login_and_save_cookies(config=config)
+        else:
+            steam_client = SteamClientPatched._login_and_save_cookies(config=config)
+        return steam_client
+
+    @property
+    def market_params(self) -> dict:
+        return {
+            "session": self.session,
+            "session_id": self.session_id,
+            "currency": self.currency,
+        }

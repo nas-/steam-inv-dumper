@@ -1,9 +1,16 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
-from typing import Protocol
+from typing import Literal, Type, TypeVar
 
 from steam_inv_dumper.utils.price_utils import TWODIGITS, convert_string_prices
+
+T = TypeVar("T", bound="ListOnMarket")
+V = TypeVar("V", bound="DelistFromMarket")
+X = TypeVar("X", bound="InventoryItem")
+K = TypeVar("K", bound="Description")
+L = TypeVar("L", bound="MyMarketListing")
+P = TypeVar("P", bound="MarketListing")
 
 
 class MarketActionType(Enum):
@@ -13,14 +20,14 @@ class MarketActionType(Enum):
 
 @dataclass
 class ListOnMarket:
-    action_type: MarketActionType.PlaceOnMarket
+    action_type: Literal[MarketActionType.PlaceOnMarket]
     assetsID: str
     market_hash_name: str
     you_receive: str
     buyer_pays: str
 
     @classmethod
-    def from_dict(cls, dictionary: dict):
+    def from_dict(cls: Type[T], dictionary: dict) -> T:
         if isinstance(dictionary["you_receive"], float):
             raise Exception("Needs to be int, or str")
         if isinstance(dictionary["buyer_pays"], float):
@@ -37,14 +44,14 @@ class ListOnMarket:
 
 @dataclass
 class DelistFromMarket:
-    action_type: MarketActionType.RemoveFromMarket
+    action_type: Literal[MarketActionType.RemoveFromMarket]
     market_hash_name: str
     itemID: str
     Unowned_itemID: str
     listing_id: str
 
     @classmethod
-    def from_dict(cls, dictionary: dict):
+    def from_dict(cls: Type[V], dictionary: dict) -> V:
         return cls(
             action_type=dictionary["action_type"],
             market_hash_name=dictionary["market_hash_name"],
@@ -74,7 +81,7 @@ class InventoryItem:
     id: str
 
     @classmethod
-    def from_inventory(cls, dictionary):
+    def from_inventory(cls: Type[X], dictionary: dict) -> X:
         """Make an inventory Item from API response."""
         return cls(
             currency=dictionary["currency"],
@@ -122,7 +129,7 @@ class Description:
     owner: int
 
     @classmethod
-    def from_my_listing_dict(cls, dictionary):
+    def from_my_listing_dict(cls: Type[K], dictionary: dict) -> K:
         return cls(
             currency=dictionary["currency"],
             appid=dictionary["appid"],
@@ -165,7 +172,7 @@ class MyMarketListing:
     description: Description
 
     @classmethod
-    def from_dict(cls, dictionary):
+    def from_dict(cls: Type[L], dictionary: dict) -> L:
         return cls(
             listing_id=dictionary["listing_id"],
             buyer_pay=convert_string_prices(dictionary["buyer_pay"]),
@@ -188,7 +195,7 @@ class MarketListing:
     asset: Description
 
     @classmethod
-    def from_dict(cls, listing_info: dict, asset_info: dict):
+    def from_dict(cls: Type[P], listing_info: dict, asset_info: dict) -> P:
         """Asset info is the full dict of dicts..."""
         object_id = listing_info["asset"]["id"]
         return cls(
@@ -205,17 +212,3 @@ class MarketListing:
             converted_currencyid=listing_info["converted_currencyid"],
             asset=Description.from_my_listing_dict(asset_info[object_id]),
         )
-
-
-class ActualExchange(Protocol):
-    def login(self):
-        pass
-
-    def get_own_items(self, game):
-        pass
-
-    def get_own_listings(self):
-        pass
-
-    def run(self):
-        pass

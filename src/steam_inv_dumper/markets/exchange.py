@@ -3,14 +3,16 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import arrow
 from steampy.models import GameOptions
 
 from steam_inv_dumper.db.db import Item, Listing, init_db
-from steam_inv_dumper.markets.steam.client import SteamClientPatched
-from steam_inv_dumper.markets.steam.market import SteamMarketLimited
+from steam_inv_dumper.markets.inferfaces.interfaces import (
+    InventoryProvider,
+    MarketProvider,
+)
 from steam_inv_dumper.markets.utilities import (
     actions_to_make_list_delist,
     get_items_to_delist,
@@ -32,17 +34,24 @@ class Exchange:
     Class representing an exchange. In this case Steam Market.
     """
 
-    def __init__(self, config: dict):
+    def __init__(
+        self,
+        config: dict,
+        inventory_provider: InventoryProvider,
+        market_provider: MarketProvider,
+    ):
         self._last_run = 0
         self._config = config
         self._test_files_root = Path(__file__).parents[1] / "api_responses"
         self._heartbeat_interval = config.get("heartbeat_interval")
-        self._heartbeat_msg: float = 0
-        self._timeout: int = self._config.get("market_sell_timeout")
+        self._heartbeat_msg = 0
+        self._timeout = self._config.get("market_sell_timeout")
 
-        if self.is_testing is False:
+        self.inventory_provider = inventory_provider
+        self.market_provider = market_provider
+
+        if not self.is_testing:
             self._initialize_database()
-            self._prepare_markets()
 
     @property
     def is_testing(self):
@@ -52,36 +61,7 @@ class Exchange:
     def items_to_sell(self) -> dict:
         return self._config.get("items_to_sell", {})
 
-    def _prepare_markets(self) -> None:
-        if self._config.get("use_cookies", False):
-            try:
-                self.steam_client = SteamClientPatched.from_pickle(
-                    self._config["username"]
-                )
-                logger.info("Successfully logged in Steam trough Cookies")
-            except ValueError:
-                logger.info("Did not manage to log into Steam trough Cookies")
-                self._login_and_save_cookies()
-        else:
-            self._login_and_save_cookies()
-        self.steam_market = SteamMarketLimited(
-            self.steam_client.session,
-            self._config["steamguard"],
-            self.steam_client.session_id,
-            self.steam_client.currency,
-        )
-
-    def _login_and_save_cookies(self):
-        self.steam_client: SteamClientPatched = SteamClientPatched(
-            self._config["apikey"]
-        )
-        self.steam_client.login(
-            self._config["username"],
-            self._config["password"],
-            json.dumps(self._config["steamguard"]),
-        )
-        self.steam_client.to_pickle(self._config["username"])
-
+    # TODO Move somewhere else
     def _initialize_database(self) -> None:
         debug = self._config.get("debug", True)
         db_url = self._config.get("db_url", True)
@@ -101,7 +81,7 @@ class Exchange:
         :return: List of Inventory items.
         """
         items_dict = self._get_test_or_prod_result(
-            api_path="get_my_inventory", game=game
+            api_path="get_my_inventory", provider=self.inventory_provider, game=game
         )
 
         items = [
@@ -119,7 +99,9 @@ class Exchange:
         :return: Decimal.
         """
         price_data = self._get_test_or_prod_result(
-            api_path="get_item_price", market_hash_name=market_hash_name
+            api_path="get_item_price",
+            provider=self.market_provider,
+            market_hash_name=market_hash_name,
         )
         try:
             price_data["lowest_price"] = convert_string_prices(
@@ -137,9 +119,16 @@ class Exchange:
             price_data["lowest_price"], price_data["median_price"]
         ) - decimal.Decimal("0.01")
 
-    def _get_test_or_prod_result(self, api_path: str, *args, **kwargs) -> dict:
+    def _get_test_or_prod_result(
+        self,
+        api_path: str,
+        provider: Union[InventoryProvider, MarketProvider],
+        *args,
+        **kwargs,
+    ) -> dict:
         """
         Returns the results, calling the API if in production or getting the static file if in testing mode.
+        :param provider: Whether this call should be directed to the inventory endpoint or to the market one.
         :param api_path: str market_hash_name of the file, or method to call
         :return:
         """
@@ -147,7 +136,7 @@ class Exchange:
             file_path = self._test_files_root / f"{api_path}.json"
             result = json.loads(file_path.read_text())
         else:
-            result = getattr(self.steam_market, api_path)(*args, **kwargs)
+            result = getattr(provider, api_path)(*args, **kwargs)
         return result
 
     def get_own_listings(self) -> List[MyMarketListing]:
@@ -156,7 +145,9 @@ class Exchange:
         :return: List of My Market listings
         """
 
-        listings = self._get_test_or_prod_result("get_my_market_listings")
+        listings = self._get_test_or_prod_result(
+            api_path="get_my_market_listings", provider=self.market_provider
+        )
 
         listings_sell = [
             MyMarketListing.from_dict(listing_vars)
@@ -328,7 +319,7 @@ class Exchange:
                     "delist items. Debug is False. Sending cancel order to steam"
                 )
                 logger.debug(f"{item.market_hash_name} - listing_id {item.listing_id}")
-                self.steam_market.cancel_sell_order(item.listing_id)
+                self.market_provider.cancel_sell_order(sell_listing_id=item.listing_id)
             record = Listing.query_ref(item_id=item.itemID).first()
 
             # delete this instead?
@@ -353,7 +344,7 @@ class Exchange:
                 )
             else:
                 logger.debug(f"{element.market_hash_name} creating real sell order")
-                self.steam_market.create_sell_order(
+                self.market_provider.create_sell_order(
                     assetid=element.assetsID,
                     game=GameOptions.CS,
                     money_to_receive=element.you_receive,
@@ -374,7 +365,7 @@ class Exchange:
                 on_sale=True,
                 buyer_pays=buyer_pays,
                 you_receive=you_receive,
-                currency=self.steam_market.currency.name,
+                currency=self.market_provider.currency.name,
             )
             Listing.query.session.add(for_db)
         Listing.query.session.flush()

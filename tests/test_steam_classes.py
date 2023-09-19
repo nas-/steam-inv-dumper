@@ -1,7 +1,8 @@
 from unittest import TestCase
 
+from data import listings
+
 from steam_inv_dumper.markets.steam.market import SteamMarketLimited
-from tests.data import listings
 
 
 class TestSteamLimited(TestCase):
