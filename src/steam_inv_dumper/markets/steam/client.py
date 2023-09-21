@@ -9,7 +9,7 @@ import requests
 from steampy.client import SteamClient
 from steampy.models import Currency, GameOptions, SteamUrl
 
-from steam_inv_dumper.markets.inferfaces.interfaces import InventoryProvider
+from steam_inv_dumper.markets.interfaces.interfaces import InventoryProvider
 from steam_inv_dumper.utils.price_utils import convert_string_prices
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class SteamClientPatched(SteamClient):
     And custom functions that are better than the ones provided by Steampy.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.currency = None
 
@@ -118,7 +118,7 @@ class SteamClientPatched(SteamClient):
 
 
 class MockedSteamClient:
-    def __init__(self):
+    def __init__(self) -> None:
         self._test_files_root = Path(__file__).parents[2] / "api_responses"
         self.currency = Currency.EURO
 
@@ -128,7 +128,7 @@ class MockedSteamClient:
 
     def get_my_inventory(self, game: GameOptions) -> dict:
         file_path = self._test_files_root / "get_my_inventory.json"
-        result = json.loads(file_path.read_text())
+        result = json.loads(file_path.read_text(encoding="utf8"))
         return result
 
     @property

@@ -14,7 +14,7 @@ from ratelimit import RateLimitException, limits
 from steampy.market import SteamMarket
 from steampy.models import Currency, GameOptions
 
-from steam_inv_dumper.markets.inferfaces.interfaces import MarketProvider
+from steam_inv_dumper.markets.interfaces.interfaces import MarketProvider
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class SteamMarketLimited(SteamMarket):
         return new_func
 
     @property
-    def currency(self):
+    def currency(self) -> Currency:
         return self.currency
 
     def __getattribute__(self, item: str) -> Callable:
@@ -85,7 +85,7 @@ class SteamMarketLimited(SteamMarket):
             return attribute
 
     # ? @staticmethod
-    def get_listings_for_item(self, market_hash_name, count=10, start=0):
+    def get_listings_for_item(self, market_hash_name: str, count: int = 10, start: int = 0) -> dict:
         """
         Gets inspect links from listings from market items.
         :param market_hash_name: Market hash market_hash_name of the item.
@@ -109,13 +109,13 @@ class SteamMarketLimited(SteamMarket):
             req.raise_for_status()
             collective.append(req.json())
         # TODO raise
-        K = {"listinginfo": {}, "assets": {}}
-        for i in collective:
-            if i["success"]:
-                K["total_count"] = i["total_count"]
+        K: dict = {"listinginfo": {}, "assets": {}}
+        for l in collective:
+            if l["success"]:
+                K["total_count"] = l["total_count"]
                 K["success"] = True
-                K["listinginfo"] = {**K["listinginfo"], **i["listinginfo"]}
-                K["assets"] = {**K["assets"], **i["assets"]}
+                K["listinginfo"] = {**K["listinginfo"], **l["listinginfo"]}
+                K["assets"] = {**K["assets"], **l["assets"]}
         print(K["success"])
         return K
 
@@ -152,9 +152,11 @@ class SteamMarketLimited(SteamMarket):
         :param market_hash_name: Market hash market_hash_name.
         :return:{"success":true,"lowest_price":"6,70€","volume":"7","median_price":"6,70€"}
         """
+        # TODO fix this
         price_data = self.fetch_price(market_hash_name, game=GameOptions.CS, currency=str(self.currency))
         if price_data.get("success") is True:
             return price_data
+        raise Exception("Error getting price")
 
     @classmethod
     def initialize(cls: Type[K], config: dict) -> K:
@@ -167,7 +169,7 @@ class SteamMarketLimited(SteamMarket):
 
 
 class MockedSteamMarket:
-    def __init__(self):
+    def __init__(self) -> None:
         self._test_files_root = Path(__file__).parents[2] / "api_responses"
         self._currency = Currency.EURO
 
@@ -187,12 +189,12 @@ class MockedSteamMarket:
 
     def get_item_price(self, market_hash_name: str) -> dict:
         file_path = self._test_files_root / "get_item_price.json"
-        result = json.loads(file_path.read_text())
+        result = json.loads(file_path.read_text(encoding="utf8"))
         return result
 
     def get_my_market_listings(self) -> dict:
         file_path = self._test_files_root / "get_my_market_listings.json"
-        result = json.loads(file_path.read_text())
+        result = json.loads(file_path.read_text(encoding="utf8"))
         return result
 
 

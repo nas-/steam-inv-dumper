@@ -2,4 +2,6 @@
 /.idea/
 steam-inv-dumper/config.json
 *.sqlite
-steam-inv-dumper/nasil2nd.pkl
+steam-inv-dumper/*.pkl
+/tests/test_config.json
+/tests/.*

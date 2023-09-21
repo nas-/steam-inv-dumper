@@ -6,8 +6,8 @@ from typing import List
 import arrow
 from steampy.models import GameOptions
 
-from steam_inv_dumper.db.db import Item, Listing, init_db
-from steam_inv_dumper.markets.inferfaces.interfaces import (
+from steam_inv_dumper.db.db import Database
+from steam_inv_dumper.markets.interfaces.interfaces import (
     InventoryProvider,
     MarketProvider,
 )
@@ -33,44 +33,27 @@ class Exchange:
     """
 
     def __init__(
-        self,
-        config: dict,
-        inventory_provider: InventoryProvider,
-        market_provider: MarketProvider,
+        self, config: dict, inventory_provider: InventoryProvider, market_provider: MarketProvider, database: Database
     ):
+        # TODO move those somewere else.
         self._last_run = 0
         self._config = config
         self._test_files_root = Path(__file__).parents[1] / "api_responses"
-        self._heartbeat_interval = config.get("heartbeat_interval")
+        self._heartbeat_interval = config.get("heartbeat_interval", 300)
         self._heartbeat_msg = 0
-        self._timeout = self._config.get("market_sell_timeout")
+        self._timeout = self._config.get("market_sell_timeout", 300)
 
         self.inventory_provider = inventory_provider
         self.market_provider = market_provider
-
-        if not self.is_testing:
-            self._initialize_database()
+        self.database = database
 
     @property
-    def is_testing(self):
+    def is_testing(self) -> bool:
         return self._config["debug"] is True
 
     @property
     def items_to_sell(self) -> dict:
         return self._config.get("items_to_sell", {})
-
-    # TODO Move somewhere else
-    def _initialize_database(self) -> None:
-        debug = self._config.get("debug", True)
-        db_url = self._config.get("db_url", True)
-        if debug:
-            init_db("sqlite:///sales_debug.sqlite")
-            # Listing.query.delete()
-            # Listing.query.session.flush()
-            # Item.query.delete()
-            # Item.query.session.flush()
-        else:
-            init_db(db_url)
 
     def get_own_items(self, game: GameOptions = GameOptions.CS) -> List[InventoryItem]:
         """
@@ -134,13 +117,13 @@ class Exchange:
         Takes an exchange and runs the CheckSold, update database, sell more items cycle.
         Item_id s change when you remove the item from the market.
         """
-        my_listings = self.get_own_listings()
-        if not self.is_testing:
-            self._update_sold_items(items_sale_listings=my_listings)
         # TODO is this always needed?
         my_items = self.get_own_items()
-        if not self.is_testing:
-            self._update_items_in_database(inventory_items_list=my_items)
+        self._update_items_in_database(inventory_items_list=my_items)
+
+        my_listings = self.get_own_listings()
+        self._add_all_listings(items_sale_listings=my_listings)
+        self._update_sold_items(items_sale_listings=my_listings)
 
         # TODO basically this is all business logic. I need to move it away...
         for market_hash_name, sell_options in self._config.get("items_to_sell", {}).items():
@@ -183,8 +166,7 @@ class Exchange:
                 price=actions["list"]["int_price"],
                 inventory=items_in_inventory,
             )
-            if not self.is_testing:
-                self.dispatch_sales(item_for_sale_list=list_items_to_sell)
+            self.dispatch_sales(item_for_sale_list=list_items_to_sell)
 
             # Items to delete
             list_items_to_delist = get_items_to_delist(
@@ -192,9 +174,40 @@ class Exchange:
                 amount=actions["delist"]["qty"],
                 listings=item_on_sale_listings,
             )
-            if not self.is_testing:
-                self.dispatch_delists(to_delist=list_items_to_delist)
-            pass
+            self.dispatch_delists(to_delist=list_items_to_delist)
+        # Cleanup Block
+        my_new_listings = self.get_own_listings()
+        self._update_listing_ids(items_sale_listings=my_new_listings)
+
+    def _update_listing_ids(self, items_sale_listings: list[MyMarketListing]) -> None:
+        """
+        Updates the database with the newly created listing_IDs.
+        :param items_sale_listings: dataframe containing all items on sale
+        """
+
+        for listing in items_sale_listings:
+            listings_in_db = self.database.Listing.query_ref(
+                item_id=listing.description.id, listing_status=["ON_SALE"]
+            ).first()
+            if listings_in_db.listing_id is None:
+                listings_in_db.listing_id = listing.listing_id
+                self.database.Item.query.session.flush()
+        pass
+
+    def _add_all_listings(self, items_sale_listings: list[MyMarketListing]) -> None:
+        """
+        Finds the items which are not in the inventory or on sale anymore, and update the database,
+        setting them all as sold.
+        :param items_sale_listings: dataframe containing all items of this kind on sale
+        """
+
+        for listing in items_sale_listings:
+            listings_in_db = self.database.Listing.query_ref(item_id=listing.description.id).all()
+            if not listings_in_db:
+                for_db = self.database.Listing.from_my_listing(my_listing=listing, listing_status="ON_SALE")
+                self.database.Listing.query.session.add(for_db)
+        self.database.Item.query.session.flush()
+        pass
 
     def _update_sold_items(self, items_sale_listings: list[MyMarketListing]) -> None:
         """
@@ -204,35 +217,22 @@ class Exchange:
         """
 
         items_in_listings = [item.description.id for item in items_sale_listings]
-        listings_in_db = Listing.query_ref(sold=False, on_sale=True).all()
+        listings_in_db = self.database.Listing.query_ref(listing_status=["ON_SALE"]).all()
         for item_in_db in listings_in_db:
             # The item is still listed. So not sold.
-            if item_in_db.item_id in items_in_listings:
-                if not item_in_db.listing_id:
-                    logger.info(f"Updating {item_in_db.item.market_hash_name} listing_id")
-                    listing_id = [
-                        listing.listing_id
-                        for listing in items_sale_listings
-                        if listing.description.id == item_in_db.item_id
-                    ][0]
-                    item_in_db.listing_id = listing_id
-            else:
-                logger.info(f"Updating {item_in_db.item.market_hash_name} to sold")
+            if item_in_db.item_id not in items_in_listings:
+                logger.info(f"Updating {item_in_db.item_id} {item_in_db.item.market_hash_name} to sold")
                 # item was sold.
-                item_in_db.sold = True
-                item_in_db.on_sale = False
+                item_in_db.listing_status = "SOLD"
                 item_in_db.item.sold = True
-                item_in_db.item.stale_item_id = True
+        pass
 
-        Listing.query.session.flush()
-        Item.query.session.flush()
-
-    def _update_items_in_database(self, inventory_items_list: list[InventoryItem]):
+    def _update_items_in_database(self, inventory_items_list: list[InventoryItem]) -> None:
         for item in inventory_items_list:
-            items_already_in_db = Item.query_ref(market_hash_name=item.market_hash_name, item_id=item.id).all()
+            items_already_in_db = self.database.Item.query_ref(item_id=item.id).all()
             if len(items_already_in_db) == 1:
                 continue
-            item_for_db = Item(
+            item_for_db = self.database.Item(
                 item_id=item.id,
                 market_hash_name=item.market_hash_name,
                 account=self._config["username"],
@@ -242,8 +242,8 @@ class Exchange:
                 marketable=item.marketable,
                 commodity=item.commodity,
             )
-            Item.query.session.add(item_for_db)
-        Item.query.session.flush()
+            self.database.Item.query.session.add(item_for_db)
+        self.database.Item.query.session.flush()
 
     def dispatch_delists(self, to_delist: list[DelistFromMarket]) -> None:
         """
@@ -262,13 +262,13 @@ class Exchange:
                 logger.debug("delist items. Debug is False. Sending cancel order to steam")
                 logger.debug(f"{item.market_hash_name} - listing_id {item.listing_id}")
                 self.market_provider.cancel_sell_order(sell_listing_id=item.listing_id)
-            record = Listing.query_ref(item_id=item.itemID).first()
+            record = self.database.Listing.query_ref(item_id=item.itemID).first()
 
             # delete this instead?
-            record.on_sale = False
+            record.listing_status = "CANCELLED"
             record.item.stale_item_id = True
 
-        Listing.query.session.flush()
+        self.database.Listing.query.session.flush()
 
     def dispatch_sales(self, item_for_sale_list: List[ListOnMarket]) -> None:
         """
@@ -292,18 +292,23 @@ class Exchange:
                     money_to_receive=element.you_receive,
                 )
 
-            # Element ready for DB
-            # TODO I should store the amounts in cents and that's it....
             buyer_pays = int(element.buyer_pays)
             you_receive = int(element.you_receive)
-            for_db = Listing(
-                item_id=element.assetsID,
-                date=datetime.utcnow(),
-                sold=False,
-                on_sale=True,
-                buyer_pays=buyer_pays,
+
+            listing_already_in_db = self.database.Listing.query_ref(
+                item_id=element.assetsID, listing_status=["ON_SALE"]
+            ).all()
+            if len(listing_already_in_db) == 1:
+                continue
+
+            for_db = self.database.Listing(
+                # listing_id
+                buyer_pay=buyer_pays,
                 you_receive=you_receive,
+                item_id=element.assetsID,
+                created_on=datetime.utcnow(),
                 currency=self.market_provider.currency.name,
+                listing_status="ON_SALE",
             )
-            Listing.query.session.add(for_db)
-        Listing.query.session.flush()
+            self.database.Listing.query.session.add(for_db)
+        self.database.Listing.query.session.flush()

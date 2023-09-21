@@ -1,60 +1,62 @@
-import os
 from datetime import datetime
 from unittest import TestCase
 
-from steam_inv_dumper.db.db import Item, Listing, init_db
+from steam_inv_dumper.db.db import Database
+from steam_inv_dumper.utils.configuration import load_config
 
 
 class TestSteamDatabase(TestCase):
-    @classmethod
-    def tearDownClass(cls) -> None:
-        os.remove("sales_test.sqlite")
+    def tearDown(self) -> None:
+        self.db.Listing.query.delete()
+        self.db.Listing.query.session.flush()
+        self.db.Item.query.delete()
+        self.db.Item.query.session.flush()
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        init_db("sqlite:///sales_test.sqlite")
-        for_db = Listing(
+    def setUp(self) -> None:
+        config = load_config("test_config.json").unwrap()
+        self.db = Database(config=config)
+        for_db = self.db.Listing(
             item_id="12345",
-            date=datetime.now(),
+            created_on=datetime.now(),
             you_receive=1430,
-            buyer_pays=1499,
+            buyer_pay=1499,
         )
-        item_for_db = Item(item_id="12345", market_hash_name="casekey1")
-        Listing.query.session.add(for_db)
-        Item.query.session.add(item_for_db)
-        Listing.query.session.flush()
-        Item.query.session.flush()
+        item_for_db = self.db.Item(item_id="12345", market_hash_name="casekey1")
+        self.db.Listing.query.session.add(for_db)
+        self.db.Item.query.session.add(item_for_db)
+        self.db.Listing.query.session.flush()
+        self.db.Item.query.session.flush()
+        pass
 
     def test_is_sold(self):
-        K = Item.query_ref(item_id="12345").first()
-        self.assertEqual(K.is_sold(), False)
-        K.listings[0].sold = True
-        Item.query.session.flush()
-        K = Item.query_ref(item_id="12345").first()
-        self.assertEqual(K.is_sold(), True)
+        K = self.db.Item.query_ref(item_id="12345").first()
+        self.assertEqual(K.sold, False)
+        K.sold = True
+        self.db.Item.query.session.flush()
+        K = self.db.Item.query_ref(item_id="12345").first()
+        self.assertEqual(K.sold, True)
         K.listings[0].sold = False
-        Item.query.session.flush()
+        self.db.Item.query.session.flush()
 
     def test_listing_to_json(self):
-        K = Listing.query_ref(item_id="12345").first()
+        K = self.db.Listing.query_ref(item_id="12345").first()
         item_json = K.to_json()
         self.assertDictEqual(
             item_json,
             {
                 "listing_id": K.listing_id,
-                "on_sale": K.on_sale,
                 "id": K.id,
                 "currency": K.currency,
                 "item_id": K.item_id,
-                "date": K.date,
-                "sold": K.sold,
-                "buyer_pays": K.buyer_pays,
+                "created_on": K.created_on,
+                "listing_status": K.listing_status,
+                "buyer_pay": K.buyer_pay,
                 "you_receive": K.you_receive,
             },
         )
 
     def test_item_to_json(self):
-        K = Item.query_ref(item_id="12345").first()
+        K = self.db.Item.query_ref(item_id="12345").first()
         item_json = K.to_json()
         self.assertDictEqual(
             item_json,
@@ -74,24 +76,24 @@ class TestSteamDatabase(TestCase):
         )
 
     def test_select_all_ids(self) -> None:
-        K = Item.query_ref(item_id="12345").first()
+        K = self.db.Item.query_ref(item_id="12345").first()
         self.assertEqual(K.item_id, "12345")
-        K = Item.query_ref(market_hash_name="casekey1").first()
+        K = self.db.Item.query_ref(market_hash_name="casekey1").first()
         self.assertEqual(K.market_hash_name, "casekey1")
 
-        K = Item.query_ref(market_hash_name="casekey1").first()
+        K = self.db.Item.query_ref(market_hash_name="casekey1").first()
         self.assertEqual(K.listings[0].you_receive, 1430)
-        self.assertEqual(K.listings[0].buyer_pays, 1499)
+        self.assertEqual(K.listings[0].buyer_pay, 1499)
         K.sold = True
-        Item.query.session.flush()
+        self.db.Item.query.session.flush()
         self.assertEqual(K.sold, True)
-        K = Item.query_ref(market_hash_name="casekey1").first()
-        Item.query.session.delete(K)
-        Item.query.session.flush()
-        self.assertEqual(Item.query_ref(market_hash_name="casekey1").all(), [])
+        K = self.db.Item.query_ref(market_hash_name="casekey1").first()
+        self.db.Item.query.session.delete(K)
+        self.db.Item.query.session.flush()
+        self.assertEqual(self.db.Item.query_ref(market_hash_name="casekey1").all(), [])
 
     def test_correct_decimal_precison(self) -> None:
-        K = Listing.query_ref(item_id="12345").first()
+        K = self.db.Listing.query_ref(item_id="12345").first()
 
         self.assertEqual(K.you_receive, 1430)
-        self.assertEqual(K.buyer_pays, 1499)
+        self.assertEqual(K.buyer_pay, 1499)

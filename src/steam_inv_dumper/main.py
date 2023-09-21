@@ -1,5 +1,6 @@
 import logging
 
+from steam_inv_dumper.db.db import Database
 from steam_inv_dumper.markets.exchange import Exchange
 from steam_inv_dumper.markets.steam.client import steam_client_factory
 from steam_inv_dumper.markets.steam.market import steam_market_factory
@@ -9,21 +10,17 @@ from steam_inv_dumper.utils.logger import setup_logging
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     setup_logging(0)
-    config = load_config("config.json")
-
+    config = load_config("config.json").unwrap()
+    database = Database(config=config)
     inventory_provider = steam_client_factory(config=config)
-
-    # Add is_testing state.
     market_provider = steam_market_factory(
         config={**inventory_provider.market_params, "steamguard": config["steamguard"]}
     )
 
     exchange = Exchange(
-        config=config,
-        inventory_provider=inventory_provider,
-        market_provider=market_provider,
+        config=config, inventory_provider=inventory_provider, market_provider=market_provider, database=database
     )
     exchange.run()
     pass

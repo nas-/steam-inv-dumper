@@ -104,18 +104,17 @@ def actions_to_make_list_delist(
         min_allowed_price = fees["money_to_ask"]
 
     item_selling_price = item_selling_price
-    actions = {
-        "delist": determine_delists(
-            num_market_listings,
-            min_price_mark_listing,
-            num_to_sell,
-            num_in_inventory,
-            item_selling_price,
-            min_allowed_price,
-        )
-    }
-    num_market_listings -= actions["delist"]["qty"]
-    assert num_market_listings >= 0
+
+    amount_to_delist = determine_delists(
+        num_market_listings,
+        min_price_mark_listing,
+        num_to_sell,
+        num_in_inventory,
+        item_selling_price,
+        min_allowed_price,
+    )
+    actions = {"delist": {"qty": amount_to_delist}}
+    num_market_listings -= amount_to_delist
 
     actions["list"] = determine_lists(
         num_market_listings,
@@ -124,7 +123,6 @@ def actions_to_make_list_delist(
         item_selling_price,
         min_allowed_price,
     )
-    assert num_market_listings + actions["list"]["qty"] <= num_to_sell
     return actions
 
 
@@ -134,8 +132,8 @@ def determine_delists(
     max_on_sale: int,
     tot_in_inventory: int,
     usual_price: int,
-    min_allowed_price: float,
-) -> Dict:
+    min_allowed_price: int,
+) -> int:
     """
     Return delist actions
     :param market_listings:
@@ -146,41 +144,35 @@ def determine_delists(
     :param min_allowed_price:
     """
 
-    # Convertions
-    min_price_market_listing_decimal = min_price_market_listing
-    usual_price = usual_price
-    min_allowed_price_decimal = min_allowed_price
+    if any(x <= 0 for x in [usual_price, min_allowed_price]):
+        raise ValueError("Prices must be greater than 0")
+    if any(x < 0 for x in [tot_in_inventory, market_listings, max_on_sale]):
+        raise ValueError("Amounts must be greater than 0")
 
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
-    imLowesPrice = usual_price >= min_price_market_listing_decimal >= min_allowed_price_decimal
+    imLowesPrice = usual_price >= min_price_market_listing >= min_allowed_price
 
-    price = min_price_market_listing_decimal
     if market_listings == 0:
-        amount = 0
-    elif max_on_sale == 0:
-        amount = market_listings
-    elif price == min_allowed_price_decimal:
+        return 0
+    if max_on_sale == 0:
+        return market_listings
+
+    if min_price_market_listing == min_allowed_price:
         # Returns more than 0 if I have more than allowed listings.
         amount = max(0, market_listings - max_on_sale)
-    elif canListMoreItems:
+        return amount
+    if canListMoreItems:
         # I can list more from inv. No need for delists.
-        if min_price_market_listing_decimal < min_allowed_price_decimal:
+        if min_price_market_listing < min_allowed_price:
             # My listings are lower than min allowed int_price
-            amount = market_listings
-        else:
-            amount = 0
-    else:
-        # Need to remove some.
-        if imLowesPrice:
-            amount = market_listings - max_on_sale
-        else:
-            amount = market_listings
-
-    # Guard cause. Delistining <0
-    if amount < 0:
-        amount = 0
-
-    return {"qty": amount, "int_price": price}
+            return market_listings
+        return 0
+    # Need to remove some.
+    if imLowesPrice:
+        amount = market_listings - max_on_sale
+        return amount
+    amount = market_listings
+    return amount
 
 
 def determine_lists(
@@ -191,21 +183,23 @@ def determine_lists(
     min_allowed_price: int,
 ) -> dict:
     # Convertions
-    usual_price = usual_price
-    min_allowed_price_decimal = min_allowed_price
+
+    if any(x <= 0 for x in [usual_price, min_allowed_price]):
+        raise ValueError("Prices must be greater than 0")
+    if any(x < 0 for x in [tot_in_inventory, market_listings, max_on_sale]):
+        raise ValueError("Amounts must be greater than 0")
+
     canListMoreItems = tot_in_inventory > 0 and market_listings < max_on_sale
 
     amount = 0
     if canListMoreItems:
         amount = max_on_sale - market_listings
 
-    price = max(usual_price, min_allowed_price_decimal)
+    price = max(usual_price, min_allowed_price)
 
     if amount > tot_in_inventory:
         amount = tot_in_inventory
 
-    assert amount >= 0
-    assert price >= min_allowed_price_decimal
     return {"qty": amount, "int_price": price}
 
 

@@ -1,8 +1,12 @@
 from unittest import TestCase
 
+import hypothesis.strategies as st
+from hypothesis import Verbosity, given, settings
+
 from steam_inv_dumper.markets.utilities import (
     actions_to_make_list_delist,
     determine_delists,
+    determine_lists,
 )
 
 
@@ -34,7 +38,7 @@ class TestActions(TestCase):
             usual_price[0],
             min_allowed_price[0],
         )
-        self.assertEqual(delists, {"qty": 3, "int_price": 200})
+        self.assertEqual(delists, 3)
 
         delists = determine_delists(
             market_listings,
@@ -44,7 +48,7 @@ class TestActions(TestCase):
             usual_price[0],
             min_allowed_price[1],
         )
-        self.assertEqual(delists, {"qty": 3, "int_price": 200})
+        self.assertEqual(delists, 3)
 
     def test_make_delists(self) -> None:
         market_listings = [1, 2, 3]
@@ -66,7 +70,7 @@ class TestActions(TestCase):
             usual_price[0],
             min_allowed_price[0],
         )
-        self.assertEqual(delists, {"qty": 1, "int_price": 100})
+        self.assertEqual(delists, 1)
 
         # have 1 item on sale at int_price 1
         # can have max 5 on sale, dont have any in inv.
@@ -80,7 +84,7 @@ class TestActions(TestCase):
             usual_price[0],
             min_allowed_price[0],
         )
-        self.assertEqual(delists, {"qty": 0, "int_price": 100})
+        self.assertEqual(delists, 0)
 
         # have 1 item on sale at int_price 1
         # can have max 5 on sale, dont have any in inv.
@@ -94,7 +98,7 @@ class TestActions(TestCase):
             usual_price[0],
             min_allowed_price[1],
         )
-        self.assertEqual(delists, {"qty": 1, "int_price": 100})
+        self.assertEqual(delists, 1)
 
         # have 1 item on sale at int_price 1
         # can have max 5 on sale, dont have any in inv.
@@ -108,7 +112,7 @@ class TestActions(TestCase):
             usual_price[0],
             min_allowed_price[0],
         )
-        self.assertEqual(delists, {"qty": 1, "int_price": 200})
+        self.assertEqual(delists, 1)
 
     def test_actions_to_make_list_delist(self) -> None:
         N_MarketListings = 5
@@ -129,7 +133,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 0, "int_price": 189},
+                "delist": {"qty": 0},
                 "list": {"qty": 5, "int_price": 180},
             },
         )
@@ -153,7 +157,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 5, "int_price": 189},
+                "delist": {"qty": 5},
                 "list": {"qty": 0, "int_price": 180},
             },
         )
@@ -183,7 +187,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 0, "int_price": 189},
+                "delist": {"qty": 0},
                 "list": {"qty": 5, "int_price": 180},
             },
         )
@@ -212,7 +216,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 5, "int_price": 189},
+                "delist": {"qty": 5},
                 "list": {"qty": 5, "int_price": 180},
             },
         )
@@ -240,7 +244,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 8, "int_price": 189},
+                "delist": {"qty": 8},
                 "list": {"qty": 5, "int_price": 180},
             },
         )
@@ -266,7 +270,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 0, "int_price": 1239},
+                "delist": {"qty": 0},
                 "list": {"qty": 0, "int_price": 1239},
             },
         )
@@ -295,7 +299,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 0, "int_price": 180},
+                "delist": {"qty": 0},
                 "list": {"int_price": 180, "qty": 3},
             },
         )
@@ -320,7 +324,7 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 5, "int_price": 180},
+                "delist": {"qty": 5},
                 "list": {"qty": 0, "int_price": 180},
             },
         )
@@ -344,7 +348,61 @@ class TestActions(TestCase):
         self.assertEqual(
             actions,
             {
-                "delist": {"qty": 5, "int_price": 181},
+                "delist": {"qty": 5},
                 "list": {"qty": 5, "int_price": 1200},
             },
         )
+
+
+class TestListDelists(TestCase):
+    @given(
+        st.integers(),  # market_listings
+        st.integers(),  # max_on_sale
+        st.integers(),  # tot_in_inventory
+        st.integers(),  # usual_price
+        st.integers(),  # min_allowed_price
+    )
+    @settings(verbosity=Verbosity.verbose)
+    def test_determine_lists(self, market_listings, max_on_sale, tot_in_inventory, usual_price, min_allowed_price):
+        try:
+            a = determine_lists(
+                market_listings,
+                max_on_sale,
+                tot_in_inventory,
+                usual_price,
+                min_allowed_price,
+            )
+            self.assertIsInstance(a["int_price"], int)
+            self.assertGreater(a["int_price"], 0)
+            self.assertGreaterEqual(a["int_price"], min_allowed_price)
+            self.assertGreaterEqual(a["qty"], 0)
+            self.assertTrue(a["qty"] <= tot_in_inventory)
+            self.assertTrue(a["qty"] + market_listings <= max_on_sale or a["qty"] == 0)
+
+        except ValueError as e:
+            self.assertTrue("Prices must be greater than 0" in str(e) or "Amounts must be greater than 0" in str(e))
+
+    @given(
+        st.integers(),  # market_listings
+        st.integers(),  # min_price_market_listing
+        st.integers(),  # max_on_sale
+        st.integers(),  # tot_in_inventory
+        st.integers(),  # usual_price
+        st.integers(),  # min_allowed_price
+    )
+    @settings(verbosity=Verbosity.verbose)
+    def test_determine_delists(
+        self, market_listings, min_price_market_listing, max_on_sale, tot_in_inventory, usual_price, min_allowed_price
+    ):
+        try:
+            a = determine_delists(
+                min_price_market_listing=min_price_market_listing,
+                market_listings=market_listings,
+                max_on_sale=max_on_sale,
+                tot_in_inventory=tot_in_inventory,
+                usual_price=usual_price,
+                min_allowed_price=min_allowed_price,
+            )
+            self.assertGreaterEqual(a, 0)
+        except ValueError as e:
+            self.assertTrue("Prices must be greater than 0" in str(e) or "Amounts must be greater than 0" in str(e))

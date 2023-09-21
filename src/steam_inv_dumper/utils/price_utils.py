@@ -28,7 +28,7 @@ def convert_string_prices(price: str) -> int:
             return hundreds + cents
 
 
-def amount_to_send_desired_received_amt(price_inner: float) -> Dict[str, float]:
+def amount_to_send_desired_received_amt(price_inner: float) -> dict:
     """
     calculate_amount_to_send_for_desired_received_amount
     :param price_inner:
@@ -63,8 +63,8 @@ def get_steam_fees_object(price: int) -> Dict[str, int]:
         if fees["amount"] > int_price:
             if bEverUndershot:
                 fees = amount_to_send_desired_received_amt(nEstimatedAmountOfWalletFundsReceivedByOtherParty - 1)
-                fees["steam_fee"] += int((int_price - fees["amount"]))
-                fees["fees"] += int((int_price - fees["amount"]))
+                fees["steam_fee"] += int(int_price - fees["amount"])
+                fees["fees"] += int(int_price - fees["amount"])
                 fees["amount"] = int_price
                 break
             else:
