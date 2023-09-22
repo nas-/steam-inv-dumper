@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from steam_inv_dumper.utils.price_utils import get_steam_fees_object
+from steam_inv_dumper.utils.steam_prices_utils import get_steam_fees_object
 
 
 class TestSteamFeeObjects(TestCase):

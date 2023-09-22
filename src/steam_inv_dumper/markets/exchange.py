@@ -11,7 +11,7 @@ from steam_inv_dumper.markets.interfaces.interfaces import (
     InventoryProvider,
     MarketProvider,
 )
-from steam_inv_dumper.markets.utilities import (
+from steam_inv_dumper.utils.price_utils import (
     actions_to_make_list_delist,
     get_items_to_delist,
     get_items_to_list,
@@ -22,7 +22,7 @@ from steam_inv_dumper.utils.data_structures import (
     ListOnMarket,
     MyMarketListing,
 )
-from steam_inv_dumper.utils.price_utils import convert_string_prices
+from steam_inv_dumper.utils.steam_prices_utils import convert_string_prices
 
 logger = logging.getLogger(__name__)
 

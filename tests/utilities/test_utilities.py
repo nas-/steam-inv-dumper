@@ -1,7 +1,7 @@
 from decimal import Decimal as D
 from unittest import TestCase
 
-from steam_inv_dumper.utils.price_utils import convert_string_prices
+from steam_inv_dumper.utils.steam_prices_utils import convert_string_prices
 
 
 class TestConversions(TestCase):

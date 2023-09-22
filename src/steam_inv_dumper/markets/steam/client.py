@@ -10,7 +10,7 @@ from steampy.client import SteamClient
 from steampy.models import Currency, GameOptions, SteamUrl
 
 from steam_inv_dumper.markets.interfaces.interfaces import InventoryProvider
-from steam_inv_dumper.utils.price_utils import convert_string_prices
+from steam_inv_dumper.utils.steam_prices_utils import convert_string_prices
 
 logger = logging.getLogger(__name__)
 

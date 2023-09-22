@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from steam_inv_dumper.markets.utilities import (
+from steam_inv_dumper.utils.price_utils import (
     get_items_to_delist,
     get_items_to_list,
     how_many_can_list,
@@ -11,7 +11,7 @@ from steam_inv_dumper.utils.data_structures import (
     MarketActionType,
     MyMarketListing,
 )
-from steam_inv_dumper.utils.price_utils import get_steam_fees_object
+from steam_inv_dumper.utils.steam_prices_utils import get_steam_fees_object
 
 DESCRIPTION = {
     "currency": "currency",

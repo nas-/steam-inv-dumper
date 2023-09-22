@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, Type, TypeVar
 
-from steam_inv_dumper.utils.price_utils import convert_string_prices
+from steam_inv_dumper.utils.steam_prices_utils import convert_string_prices
 
 T = TypeVar("T", bound="ListOnMarket")
 V = TypeVar("V", bound="DelistFromMarket")
