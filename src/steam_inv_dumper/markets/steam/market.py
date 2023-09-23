@@ -2,24 +2,25 @@ import json
 import logging
 from pathlib import Path
 from typing import Callable, Type, TypeVar
-from urllib.parse import urlencode
 
 import requests
 from backoff import expo, on_exception
-
-# https://github.com/deckar01/ratelimit
-# pip install deckar01-ratelimit not pip install ratelimit
-# deckar01 contains persistence in fact
 from ratelimit import RateLimitException, limits
+from steampy.exceptions import ApiException
 from steampy.market import SteamMarket
 from steampy.models import Currency, GameOptions
 
 from steam_inv_dumper.markets.interfaces.interfaces import MarketProvider
+from steam_inv_dumper.utils.data_structures import MarketEvent
 
 logger = logging.getLogger(__name__)
 
 
 # TODO: proxy all the calls within a common method, and rate limit that instead.
+# TODO: Add a new method, to fetch events from Steam Market History.
+# "https://steamcommunity.com/market/myhistory/render/?norender=1&query=&start=1&count=130"
+
+
 # Else too much risk to forget adding one over here.
 K = TypeVar("K", bound="SteamMarketLimited")
 T = TypeVar("T", bound="MockedSteamMarket")
@@ -84,41 +85,7 @@ class SteamMarketLimited(SteamMarket):
         except AttributeError:
             return attribute
 
-    # ? @staticmethod
-    def get_listings_for_item(self, market_hash_name: str, count: int = 10, start: int = 0) -> dict:
-        """
-        Gets inspect links from listings from market items.
-        :param market_hash_name: Market hash market_hash_name of the item.
-        :param start: Listing starting at
-        :param count: Count of listings tor retrieve
-        :return: list of inspects links.
-        """
-        BASEURL = f"https://steamcommunity.com/market/listings/730/{market_hash_name}/render/?query=&"
-        # TODO start-end max =100
-        n_requests = (count - start) // 100
-        collective = []
-        for i in range(n_requests):
-            params = {
-                "start": start + 100 * i,
-                "count": 100 if n_requests > 1 else count,
-                "language": "english",
-                "currency": self.currency.value,
-            }
-            params_str = urlencode(params)
-            req = requests.get(f"{BASEURL}{params_str}")
-            req.raise_for_status()
-            collective.append(req.json())
-        # TODO raise
-        K: dict = {"listinginfo": {}, "assets": {}}
-        for l in collective:
-            if l["success"]:
-                K["total_count"] = l["total_count"]
-                K["success"] = True
-                K["listinginfo"] = {**K["listinginfo"], **l["listinginfo"]}
-                K["assets"] = {**K["assets"], **l["assets"]}
-        print(K["success"])
-        return K
-
+    # TODO refactor and add tests
     @staticmethod
     def parse_listings_for_item(req_json: dict) -> list[dict]:
         links = []
@@ -167,6 +134,30 @@ class SteamMarketLimited(SteamMarket):
             session=config["session"],
         )
 
+    def get_market_events(self, start: int = 1, count: int = 100)-> list[MarketEvent]:
+        """
+        Gets the market events from the Steam Market History.
+        :param start: start index.
+        :param count: count of events to fetch.
+        :return: List of MarketEvent objects.
+        """
+        url = f"https://steamcommunity.com/market/myhistory/render/?norender=1&query=&start={start}&count={count}"
+        response = self._session.get(url)
+        if response.status_code != 200:
+            raise ApiException("There was a problem getting the listings. http code: %s" % response.status_code)
+        res = response.json()
+        return self._parse_market_events(response=res)
+
+    def _parse_market_events(self, response: dict)-> list[MarketEvent]:
+        """
+        Parses the response from the market events endpoint.
+        :param response: raw response from the market events endpoint.
+        :return: list of MarketEvent objects.
+        """
+        events = [MarketEvent.from_event(event) for event in response["events"]]
+
+        return events
+
 
 class MockedSteamMarket:
     def __init__(self) -> None:
@@ -196,6 +187,24 @@ class MockedSteamMarket:
         file_path = self._test_files_root / "get_my_market_listings.json"
         result = json.loads(file_path.read_text(encoding="utf8"))
         return result
+
+    def get_market_events(self, start: int = 1, count: int = 100):
+        response = json.loads(
+            Path(
+                r"C:\Users\edo\PycharmProjects\steam-inv-dumper\src\steam_inv_dumper\api_responses\myhistory.json"
+            ).read_text(encoding="utf8")
+        )
+        return self._parse_market_events(response=response)
+
+    def _parse_market_events(self, response: dict) -> list[MarketEvent]:
+        """
+        Parses the response from the market events endpoint.
+        :param response: raw response from the market events endpoint.
+        :return: list of MarketEvent objects.
+        """
+        events = [MarketEvent.from_event(event) for event in response["events"]]
+
+        return events
 
 
 def steam_market_factory(config: dict) -> MarketProvider:

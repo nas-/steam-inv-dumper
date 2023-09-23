@@ -1,8 +1,8 @@
 import logging
-from datetime import datetime
 from typing import List
 
 import arrow
+from sqlalchemy.exc import IntegrityError
 from steampy.models import GameOptions
 
 from steam_inv_dumper.db.db import Database
@@ -14,6 +14,8 @@ from steam_inv_dumper.utils.data_structures import (
     DelistFromMarket,
     InventoryItem,
     ListOnMarket,
+    MarketEvent,
+    MarketEventTypes,
     MyMarketListing,
 )
 from steam_inv_dumper.utils.price_utils import (
@@ -136,26 +138,19 @@ class Exchange:
                 min_price_already_on_sale = min([i.buyer_pay for i in item_on_sale_listings])
             else:
                 min_price_already_on_sale = 0
-
-            # Update sales listings.
-            # define amounts
-            amount_in_inventory = len(items_in_inventory)
-            amount_to_sell = int(sell_options.get("quantity", 0))
-            amount_on_sale = len(item_on_sale_listings)
-            # define prices
-            # TODO see if item_selling_price,min_allowed_price_decimal can be merged here into a single variable
-            min_allowed_price = sell_options["min_price"]
             selling_price = self.get_item_price(market_hash_name=market_hash_name)
 
+            sell_params = {
+                "num_in_inventory": len(items_in_inventory),
+                "num_to_sell": int(sell_options.get("quantity", 0)),
+                "num_market_listings": len(item_on_sale_listings),
+                "min_allowed_price": sell_options["min_price"],
+                "min_price_mark_listing": min_price_already_on_sale,
+                "item_selling_price": selling_price,
+            }
+
             # TODO refactor with DataClasses.
-            actions = actions_to_make_list_delist(
-                num_market_listings=amount_on_sale,
-                num_in_inventory=amount_in_inventory,
-                min_price_mark_listing=min_price_already_on_sale,
-                item_selling_price=selling_price,
-                num_to_sell=amount_to_sell,
-                min_allowed_price=min_allowed_price,
-            )
+            actions = actions_to_make_list_delist(**sell_params)
             logger.info(f"{market_hash_name}  {actions}")
 
             # Items to sell
@@ -177,6 +172,8 @@ class Exchange:
         # Cleanup Block
         my_new_listings = self.get_own_listings()
         self._update_listing_ids(items_sale_listings=my_new_listings)
+        market_events: List[MarketEvent] = self.market_provider.get_market_events()
+        self._update_events(market_events=market_events)
 
     def _update_listing_ids(self, items_sale_listings: list[MyMarketListing]) -> None:
         """
@@ -186,7 +183,7 @@ class Exchange:
 
         for listing in items_sale_listings:
             listings_in_db = self.database.Listing.query_ref(
-                item_id=listing.description.id, listing_status=["ON_SALE"]
+                item_id=listing.description.id, listing_status=[MarketEventTypes.ListingCreated.name]
             ).first()
             if listings_in_db.listing_id is None:
                 listings_in_db.listing_id = listing.listing_id
@@ -203,7 +200,9 @@ class Exchange:
         for listing in items_sale_listings:
             listings_in_db = self.database.Listing.query_ref(item_id=listing.description.id).all()
             if not listings_in_db:
-                for_db = self.database.Listing.from_my_listing(my_listing=listing, listing_status="ON_SALE")
+                for_db = self.database.Listing.from_my_listing(
+                    my_listing=listing, listing_status=MarketEventTypes.ListingCreated.name
+                )
                 self.database.Listing.query.session.add(for_db)
         self.database.Item.query.session.flush()
         pass
@@ -216,13 +215,12 @@ class Exchange:
         """
 
         items_in_listings = [item.description.id for item in items_sale_listings]
-        listings_in_db = self.database.Listing.query_ref(listing_status=["ON_SALE"]).all()
+        listings_in_db = self.database.Listing.query_ref(listing_status=[MarketEventTypes.ListingCreated.name]).all()
         for item_in_db in listings_in_db:
             # The item is still listed. So not sold.
             if item_in_db.item_id not in items_in_listings:
                 logger.info(f"Updating {item_in_db.item_id} {item_in_db.item.market_hash_name} to sold")
                 # item was sold.
-                item_in_db.listing_status = "SOLD"
                 item_in_db.item.sold = True
         pass
 
@@ -295,7 +293,7 @@ class Exchange:
             you_receive = int(element.you_receive)
 
             listing_already_in_db = self.database.Listing.query_ref(
-                item_id=element.assetsID, listing_status=["ON_SALE"]
+                item_id=element.assetsID, listing_status=[MarketEventTypes.ListingCreated.name]
             ).all()
             if len(listing_already_in_db) == 1:
                 continue
@@ -305,9 +303,30 @@ class Exchange:
                 buyer_pay=buyer_pays,
                 you_receive=you_receive,
                 item_id=element.assetsID,
-                created_on=datetime.utcnow(),
                 currency=self.market_provider.currency.name,
-                listing_status="ON_SALE",
             )
             self.database.Listing.query.session.add(for_db)
         self.database.Listing.query.session.flush()
+
+    def _update_events(self, market_events: list[MarketEvent]) -> None:
+        """
+        Updates the database with the market events.
+        :param market_events:
+        :return:
+        """
+        listing_id_to_update = [a.listing_id for a in self.database.Listing.query.all()]
+
+        for event in market_events:
+            if event.listingid in listing_id_to_update:
+                try:
+                    event_already_in_db = self.database.Event.query_ref(
+                        listing_id=event.listingid, event_type=event.event_type.name
+                    ).all()
+                except IntegrityError as e:
+                    logger.debug(f"Integrity error {e}")
+                    continue
+                if len(event_already_in_db) == 1:
+                    continue
+                for_db = self.database.Event.from_market_event(market_event=event)
+                self.database.Event.query.session.add(for_db)
+        self.database.Event.query.session.flush()

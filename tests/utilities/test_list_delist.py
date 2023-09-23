@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from utilities.constants import DESCRIPTION
+
 from steam_inv_dumper.utils.data_structures import (
     DelistFromMarket,
     InventoryItem,
@@ -12,30 +14,6 @@ from steam_inv_dumper.utils.price_utils import (
     how_many_can_list,
 )
 from steam_inv_dumper.utils.steam_prices_utils import get_steam_fees_object
-
-DESCRIPTION = {
-    "currency": "currency",
-    "appid": "appid",
-    "contextid": "contextid",
-    "id": "id",
-    "classid": "classid",
-    "instanceid": "instanceid",
-    "amount": "amount",
-    "status": "status",
-    "original_amount": "original_amount",
-    "unowned_id": "unowned_id",
-    "unowned_contextid": "unowned_contextid",
-    "background_color": "background_color",
-    "tradable": "tradable",
-    "market_hash_name": "market_hash_name",
-    "name_color": "name_color",
-    "type": "type",
-    "market_name": "market_name",
-    "commodity": "commodity",
-    "market_tradable_restriction": "market_tradable_restriction",
-    "marketable": "marketable",
-    "owner": "owner",
-}
 
 
 class TestItemListDelist(TestCase):
