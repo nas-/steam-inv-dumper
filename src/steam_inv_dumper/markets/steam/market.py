@@ -38,7 +38,7 @@ class SteamMarketLimited(SteamMarket):
         currency: Currency,
     ) -> None:
         super().__init__(session)
-        self._set_login_executed(steamguard, session_id)
+        self._set_login_executed(steamguard=steamguard, session_id=session_id)
         self._currency = currency
 
     @on_exception(expo, RateLimitException, max_tries=8)
@@ -57,7 +57,7 @@ class SteamMarketLimited(SteamMarket):
 
     @property
     def currency(self) -> Currency:
-        return self.currency
+        return self._currency
 
     def __getattribute__(self, item: str) -> Callable:
         """
@@ -152,7 +152,7 @@ class SteamMarketLimited(SteamMarket):
         :param market_hash_name: Market hash market_hash_name.
         :return:{"success":true,"lowest_price":"6,70€","volume":"7","median_price":"6,70€"}
         """
-        # TODO fix this
+        # TODO fix this to return data correctly.
         price_data = self.fetch_price(market_hash_name, game=GameOptions.CS, currency=str(self.currency))
         if price_data.get("success") is True:
             return price_data

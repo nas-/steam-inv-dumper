@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from pathlib import Path
 from typing import List
 
 import arrow
@@ -11,16 +10,16 @@ from steam_inv_dumper.markets.interfaces.interfaces import (
     InventoryProvider,
     MarketProvider,
 )
-from steam_inv_dumper.utils.price_utils import (
-    actions_to_make_list_delist,
-    get_items_to_delist,
-    get_items_to_list,
-)
 from steam_inv_dumper.utils.data_structures import (
     DelistFromMarket,
     InventoryItem,
     ListOnMarket,
     MyMarketListing,
+)
+from steam_inv_dumper.utils.price_utils import (
+    actions_to_make_list_delist,
+    get_items_to_delist,
+    get_items_to_list,
 )
 from steam_inv_dumper.utils.steam_prices_utils import convert_string_prices
 
@@ -38,8 +37,7 @@ class Exchange:
         # TODO move those somewere else.
         self._last_run = 0
         self._config = config
-        self._test_files_root = Path(__file__).parents[1] / "api_responses"
-        self._heartbeat_interval = config.get("heartbeat_interval", 300)
+        self._heartbeat_interval = config.get("heartbeat_interval", 100)
         self._heartbeat_msg = 0
         self._timeout = self._config.get("market_sell_timeout", 300)
 
@@ -117,6 +115,7 @@ class Exchange:
         Takes an exchange and runs the CheckSold, update database, sell more items cycle.
         Item_id s change when you remove the item from the market.
         """
+        # TODO think deeply how to do the business logic.
         # TODO is this always needed?
         my_items = self.get_own_items()
         self._update_items_in_database(inventory_items_list=my_items)

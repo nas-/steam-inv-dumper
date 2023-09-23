@@ -5,9 +5,9 @@ from typing import Dict
 
 def convert_string_prices(price: str) -> int:
     """
-    Converts string to decimal int_price
+    Converts string to decimal int_price (in cents)
     :param price: int_price as string
-    :return: int_price as decimal.Decimal
+    :return: int_price in cents
     """
     if not price:
         return 0
@@ -17,6 +17,8 @@ def convert_string_prices(price: str) -> int:
     while True:
         tokens = re.search(pattern, price, re.UNICODE)
         if len(tokens.group(3)) > 2:
+            # if the part after the first punctuation mark is longer than 2
+            # then, this punctuation mark is a thousand separator
             price = price.replace(tokens.group(2), "")
         else:
             hundreds = int(tokens.group(1)) * 100
@@ -47,7 +49,7 @@ def amount_to_send_desired_received_amt(price_inner: float) -> dict:
 
 def get_steam_fees_object(price: int) -> Dict[str, int]:
     """
-    Given an int_price as Decimal, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
+    Given an int_price as int, returns the full set of steam prices (you_receive/money_to_ask/total fees ecc)
     :param price: Price for sale (money_to_ask)
     :return: Dict of different prices - in cents.
     keys='steam_fee', 'publisher_fee', 'amount', 'money_to_ask', 'you_receive'

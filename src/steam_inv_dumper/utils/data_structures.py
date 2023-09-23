@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from typing import Literal, Type, TypeVar
+from typing import Literal, Optional, Type, TypeVar
 
 from steam_inv_dumper.utils.steam_prices_utils import convert_string_prices
 
@@ -10,6 +11,7 @@ X = TypeVar("X", bound="InventoryItem")
 K = TypeVar("K", bound="Description")
 L = TypeVar("L", bound="MyMarketListing")
 P = TypeVar("P", bound="MarketListing")
+M = TypeVar("M", bound="MarketEvent")
 
 
 class MarketActionType(Enum):
@@ -206,4 +208,36 @@ class MarketListing:
             converted_fee=listing_info["converted_fee"],
             converted_currencyid=listing_info["converted_currencyid"],
             asset=Description.from_my_listing_dict(asset_info[object_id]),
+        )
+
+
+class MarketEventTypes(Enum):
+    ListingCreated = 1
+    ListingCancelled = 2
+    ListingSold = 3
+
+
+@dataclass
+class MarketEvent:
+    listingid: str
+    purchaseid: Optional[str]
+    event_type: MarketEventTypes
+    event_datetime: datetime
+    time_event_fraction: int
+    steamid_actor: int
+
+    @classmethod
+    def from_event(cls: Type[M], dictionary: dict) -> M:
+        """
+        Create a market event from a raw dictionary.
+        :param dictionary: raw dictionary from the API
+        :return: MarketEvent
+        """
+        return cls(
+            listingid=dictionary["listingid"],
+            purchaseid=dictionary.get("purchaseid"),
+            event_type=MarketEventTypes(dictionary["event_type"]),
+            event_datetime=datetime.utcfromtimestamp(dictionary["time_event"]),
+            time_event_fraction=dictionary["time_event_fraction"],
+            steamid_actor=dictionary["steamid_actor"],
         )

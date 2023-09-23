@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 # TODO refactor determine_lists
 # TODO Make Dataclasses for list, delists.
 
+
 def get_items_to_list(
     market_hash_name: str,
     amount: int,
