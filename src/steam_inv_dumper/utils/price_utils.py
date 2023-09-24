@@ -43,7 +43,7 @@ def get_items_to_list(
                 {
                     "action_type": MarketActionType.PlaceOnMarket,
                     "market_hash_name": item.market_hash_name,
-                    "assetsID": item.item_id,
+                    "item_id": item.item_id,
                     "you_receive": prices["you_receive"],
                     "buyer_pays": prices["money_to_ask"],
                 }
@@ -71,8 +71,8 @@ def get_items_to_delist(market_hash_name: str, amount: int, listings: List[MyMar
                     "action_type": MarketActionType.RemoveFromMarket,
                     "market_hash_name": temp.description.market_hash_name,
                     "listing_id": temp.listing_id,
-                    "itemID": temp.description.item_id,
-                    "Unowned_itemID": temp.description.unowned_id,
+                    "item_id": temp.description.item_id,
+                    "unowned_id": temp.description.unowned_id,
                 }
             )
         )

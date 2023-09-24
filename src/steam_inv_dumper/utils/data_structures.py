@@ -21,7 +21,7 @@ class MarketActionType(Enum):
 @dataclass
 class ListOnMarket:
     action_type: Literal[MarketActionType.PlaceOnMarket]
-    assetsID: str  # TODO change to item_id
+    item_id: str
     buyer_pays: str
     market_hash_name: str
     you_receive: str
@@ -35,7 +35,7 @@ class ListOnMarket:
 
         return cls(
             action_type=dictionary["action_type"],
-            assetsID=dictionary["assetsID"],
+            item_id=dictionary["item_id"],
             market_hash_name=dictionary["market_hash_name"],
             you_receive=str(dictionary["you_receive"]),
             buyer_pays=str(dictionary["buyer_pays"]),
@@ -45,18 +45,18 @@ class ListOnMarket:
 @dataclass
 class DelistFromMarket:
     action_type: Literal[MarketActionType.RemoveFromMarket]
-    itemID: str
+    item_id: str
     listing_id: str
     market_hash_name: str
-    Unowned_itemID: str
+    unowned_id: str
 
     @classmethod
     def from_dict(cls: Type[V], dictionary: dict) -> V:
         return cls(
             action_type=dictionary["action_type"],
             market_hash_name=dictionary["market_hash_name"],
-            itemID=dictionary["itemID"],
-            Unowned_itemID=dictionary["Unowned_itemID"],
+            item_id=dictionary["item_id"],
+            unowned_id=dictionary["unowned_id"],
             listing_id=dictionary["listing_id"],
         )
 

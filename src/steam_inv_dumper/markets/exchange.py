@@ -249,7 +249,7 @@ class Exchange:
                 logger.debug("delist items. Debug is False. Sending cancel order to steam")
                 logger.debug(f"{item.market_hash_name} - listing_id {item.listing_id}")
                 self.market_provider.cancel_sell_order(sell_listing_id=item.listing_id)
-            record = self.database.Listing.query_ref(item_id=item.itemID).first()
+            record = self.database.Listing.query_ref(item_id=item.item_id).first()
 
             # delete this instead?
             record.listing_status = "CANCELLED"
@@ -268,13 +268,13 @@ class Exchange:
         for element in item_for_sale_list:
             if self.is_testing:
                 logger.debug(
-                    f"{element.market_hash_name} create_sell_order({element.assetsID} )"
+                    f"{element.market_hash_name} create_sell_order({element.item_id} )"
                     f",money_to_receive={element.you_receive} buyer_pays {element.buyer_pays}"
                 )
             else:
                 logger.debug(f"{element.market_hash_name} creating real sell order")
                 self.market_provider.create_sell_order(
-                    assetid=element.assetsID,
+                    assetid=element.item_id,
                     game=GameOptions.CS,
                     money_to_receive=element.you_receive,
                 )
@@ -283,7 +283,7 @@ class Exchange:
             you_receive = int(element.you_receive)
 
             listing_already_in_db = self.database.Listing.query_ref(
-                item_id=element.assetsID, listing_status=[MarketEventTypes.ListingCreated.name]
+                item_id=element.item_id, listing_status=[MarketEventTypes.ListingCreated.name]
             ).all()
             if len(listing_already_in_db) == 1:
                 continue
@@ -292,7 +292,7 @@ class Exchange:
                 # listing_id
                 buyer_pay=buyer_pays,
                 you_receive=you_receive,
-                item_id=element.assetsID,
+                item_id=element.item_id,
                 currency=self.market_provider.currency.name,
             )
             self.database.Listing.query.session.add(for_db)

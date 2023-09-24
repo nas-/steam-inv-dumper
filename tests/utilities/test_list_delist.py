@@ -58,7 +58,7 @@ class TestItemListDelist(TestCase):
             [
                 {
                     "market_hash_name": output[0].market_hash_name,
-                    "assetsID": output[0].assetsID,
+                    "item_id": output[0].item_id,
                     "you_receive": output[0].you_receive,
                     "buyer_pays": output[0].buyer_pays,
                 }
@@ -66,7 +66,7 @@ class TestItemListDelist(TestCase):
             [
                 {
                     "market_hash_name": "aaa",
-                    "assetsID": "100",
+                    "item_id": "100",
                     "you_receive": "8",
                     "buyer_pays": "10",
                 }
@@ -143,15 +143,15 @@ class TestItemListDelist(TestCase):
                 DelistFromMarket(
                     action_type=MarketActionType.RemoveFromMarket,
                     market_hash_name="aaa",
-                    itemID="desc1",
-                    Unowned_itemID="300",
+                    item_id="desc1",
+                    unowned_id="300",
                     listing_id="100",
                 ),
                 DelistFromMarket(
                     action_type=MarketActionType.RemoveFromMarket,
                     market_hash_name="aaa",
-                    itemID="desc3",
-                    Unowned_itemID="300",
+                    item_id="desc3",
+                    unowned_id="300",
                     listing_id="1000",
                 ),
             ],
