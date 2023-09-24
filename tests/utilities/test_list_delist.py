@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from utilities.constants import DESCRIPTION
+from constants import DESCRIPTION
 
 from steam_inv_dumper.utils.data_structures import (
     DelistFromMarket,
@@ -20,7 +20,7 @@ class TestItemListDelist(TestCase):
     def test_get_list_items_to_list(self) -> None:
         items = []
         items.append(
-            InventoryItem.from_inventory(
+            InventoryItem.from_my_listing_dict(
                 {
                     **DESCRIPTION,
                     "market_hash_name": "aaa",
@@ -30,7 +30,7 @@ class TestItemListDelist(TestCase):
             )
         )
         items.append(
-            InventoryItem.from_inventory(
+            InventoryItem.from_my_listing_dict(
                 {
                     **DESCRIPTION,
                     "market_hash_name": "bbbb",
@@ -40,7 +40,7 @@ class TestItemListDelist(TestCase):
             )
         )
         items.append(
-            InventoryItem.from_inventory(
+            InventoryItem.from_my_listing_dict(
                 {
                     **DESCRIPTION,
                     "market_hash_name": "aaa",

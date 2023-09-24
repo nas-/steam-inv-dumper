@@ -134,7 +134,7 @@ class SteamMarketLimited(SteamMarket):
             session=config["session"],
         )
 
-    def get_market_events(self, start: int = 1, count: int = 100)-> list[MarketEvent]:
+    def get_market_events(self, start: int = 1, count: int = 100) -> list[MarketEvent]:
         """
         Gets the market events from the Steam Market History.
         :param start: start index.
@@ -148,7 +148,7 @@ class SteamMarketLimited(SteamMarket):
         res = response.json()
         return self._parse_market_events(response=res)
 
-    def _parse_market_events(self, response: dict)-> list[MarketEvent]:
+    def _parse_market_events(self, response: dict) -> list[MarketEvent]:
         """
         Parses the response from the market events endpoint.
         :param response: raw response from the market events endpoint.

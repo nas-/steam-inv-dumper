@@ -21,6 +21,7 @@ from sqlalchemy.orm import Query, aliased, relationship, scoped_session, session
 from sqlalchemy.pool import StaticPool
 
 from steam_inv_dumper.utils.data_structures import (
+    InventoryItem,
     MarketEvent,
     MarketEventTypes,
     MyMarketListing,
@@ -77,17 +78,32 @@ class Item(_DECL_BASE):
 
     __tablename__ = "items"
     id = Column(Integer, primary_key=True)
-    item_id = Column(String, nullable=False, unique=True)
-    market_hash_name = Column(String, nullable=False)
+    # Account is the only column not in Item dataclass
     account = Column(String, nullable=False, default="")
+    # Elements of item dataclass
+    amount = Column(Integer, nullable=False)
     appid = Column(String, nullable=False, default="730")
-    contextid = Column(String, nullable=False, default="2")
-    # Bool fields
-    tradable = Column(Boolean, nullable=False, default=False)
-    marketable = Column(Boolean, nullable=False, default=False)
+    background_color = Column(String, nullable=False, default="")
+    classid = Column(String, nullable=False)
     commodity = Column(Boolean, nullable=False, default=False)
+    contextid = Column(String, nullable=False, default="2")
+    item_id = Column(String, nullable=False, unique=True)
+    instanceid = Column(String, nullable=False)
+    market_hash_name = Column(String, nullable=False)
+    market_name = Column(String, nullable=False)
+    market_tradable_restriction = Column(Integer, nullable=False)
+    marketable = Column(Boolean, nullable=False, default=False)
+    name_color = Column(String, nullable=False, default="")
+    original_amount = Column(Integer, nullable=True)
     sold = Column(Boolean, nullable=False, default=False)
+    owner = Column(Integer, nullable=True)
+    status = Column(Integer, nullable=True)
+    tradable = Column(Boolean, nullable=False, default=False)
+    type = Column(String, nullable=False, default="")
+    unowned_contextid = Column(String, nullable=True)
+    unowned_id = Column(String, nullable=True)
     stale_item_id = Column(Boolean, nullable=False, default=False)
+    # Relationships
     listings = relationship("Listing", back_populates="item", cascade="all,delete-orphan")
 
     @staticmethod
@@ -114,10 +130,20 @@ class Item(_DECL_BASE):
         return Item.query.filter(*filters)
 
     def to_json(self) -> dict:
-        return {i: k for i, k in vars(self).items() if not i.startswith("_")}
+        return {i: k for i, k in vars(self).items() if (not i.startswith("_") and i != "id")}
 
     def __repr__(self) -> str:
         return str(self.to_json())
+
+    @classmethod
+    def from_item_dataclass(cls: Type[I], item: InventoryItem, account: str) -> I:
+        """
+        Create an Item object from an InventoryItem dataclass
+        :param item: InventoryItem dataclass
+        :param account: name of the account
+        :return: Item object
+        """
+        return cls(account=account, **vars(item))
 
 
 class Listing(_DECL_BASE):
@@ -131,12 +157,12 @@ class Listing(_DECL_BASE):
     __table_args__ = (UniqueConstraint("item_id", "listing_id", name="_itemid_sold_onsale"),)
 
     id = Column(Integer, nullable=False, primary_key=True, autoincrement=True)
-    listing_id = Column(String, unique=True)
     buyer_pay = Column(Integer, nullable=False)
-    you_receive = Column(Integer, nullable=False)
-    item_id = Column(String, ForeignKey("items.item_id"))
     currency = Column(String, nullable=False, default="EUR")
     item = relationship("Item", back_populates="listings")
+    item_id = Column(String, ForeignKey("items.item_id"))
+    listing_id = Column(String, unique=True)
+    you_receive = Column(Integer, nullable=False)
     events = relationship(
         "Event", back_populates="listing", cascade="all,delete-orphan", order_by="desc(Event.event_datetime)"
     )
@@ -208,8 +234,7 @@ class Listing(_DECL_BASE):
             listing_id=my_listing.listing_id,
             buyer_pay=my_listing.buyer_pay,
             you_receive=my_listing.you_receive,
-            item_id=my_listing.description.id,
-            currency=my_listing.description.currency,
+            item_id=my_listing.description.item_id,
         )
 
 
@@ -228,12 +253,12 @@ class Event(_DECL_BASE):
     __tablename__ = "events"
     __table_args__ = (UniqueConstraint("listing_id", "event_type", name="_listing_event"),)
     id = Column(Integer, primary_key=True, autoincrement=True)
+    event_datetime = Column(DateTime, default=func.current_timestamp(), nullable=False)
+    event_type = Column(String, nullable=False)
     listing_id = Column(String, ForeignKey("listings.listing_id"))
     purchase_id = Column(String, nullable=True)
-    event_type = Column(String, nullable=False)
-    event_datetime = Column(DateTime, default=func.current_timestamp(), nullable=False)
-    time_event_fraction = Column(Integer, nullable=False)
     steam_id_actor = Column(String, nullable=False)
+    time_event_fraction = Column(Integer, nullable=False)
     listing = relationship("Listing", back_populates="events")
     # item = relationship("Item", secondary="listings", back_populates="events")
 

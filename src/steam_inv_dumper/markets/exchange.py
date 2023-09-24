@@ -63,7 +63,7 @@ class Exchange:
         """
         items_dict = self.inventory_provider.get_my_inventory(game=game)
 
-        items = [InventoryItem.from_inventory(listing_vars) for listing_id, listing_vars in items_dict.items()]
+        items = [InventoryItem.from_my_listing_dict(listing_vars) for listing_id, listing_vars in items_dict.items()]
         items = [item for item in items if item.marketable is True]
 
         return items
@@ -129,7 +129,6 @@ class Exchange:
         # TODO basically this is all business logic. I need to move it away...
         for market_hash_name, sell_options in self._config.get("items_to_sell", {}).items():
             # dataframes
-
             item_on_sale_listings = [
                 listing for listing in my_listings if listing.description.market_hash_name == market_hash_name
             ]
@@ -183,7 +182,7 @@ class Exchange:
 
         for listing in items_sale_listings:
             listings_in_db = self.database.Listing.query_ref(
-                item_id=listing.description.id, listing_status=[MarketEventTypes.ListingCreated.name]
+                item_id=listing.description.item_id, listing_status=[MarketEventTypes.ListingCreated.name]
             ).first()
             if listings_in_db.listing_id is None:
                 listings_in_db.listing_id = listing.listing_id
@@ -198,7 +197,7 @@ class Exchange:
         """
 
         for listing in items_sale_listings:
-            listings_in_db = self.database.Listing.query_ref(item_id=listing.description.id).all()
+            listings_in_db = self.database.Listing.query_ref(item_id=listing.description.item_id).all()
             if not listings_in_db:
                 for_db = self.database.Listing.from_my_listing(
                     my_listing=listing, listing_status=MarketEventTypes.ListingCreated.name
@@ -214,7 +213,7 @@ class Exchange:
         :param items_sale_listings: dataframe containing all items of this kind on sale
         """
 
-        items_in_listings = [item.description.id for item in items_sale_listings]
+        items_in_listings = [item.description.item_id for item in items_sale_listings]
         listings_in_db = self.database.Listing.query_ref(listing_status=[MarketEventTypes.ListingCreated.name]).all()
         for item_in_db in listings_in_db:
             # The item is still listed. So not sold.
@@ -226,19 +225,10 @@ class Exchange:
 
     def _update_items_in_database(self, inventory_items_list: list[InventoryItem]) -> None:
         for item in inventory_items_list:
-            items_already_in_db = self.database.Item.query_ref(item_id=item.id).all()
+            items_already_in_db = self.database.Item.query_ref(item_id=item.item_id).all()
             if len(items_already_in_db) == 1:
                 continue
-            item_for_db = self.database.Item(
-                item_id=item.id,
-                market_hash_name=item.market_hash_name,
-                account=self._config["username"],
-                appid=item.appid,
-                contextid=item.contextid,
-                tradable=item.tradable,
-                marketable=item.marketable,
-                commodity=item.commodity,
-            )
+            item_for_db = self.database.Item.from_item_dataclass(item=item, account=self._config["username"])
             self.database.Item.query.session.add(item_for_db)
         self.database.Item.query.session.flush()
 

@@ -8,7 +8,6 @@ from steam_inv_dumper.utils.steam_prices_utils import convert_string_prices
 T = TypeVar("T", bound="ListOnMarket")
 V = TypeVar("V", bound="DelistFromMarket")
 X = TypeVar("X", bound="InventoryItem")
-K = TypeVar("K", bound="Description")
 L = TypeVar("L", bound="MyMarketListing")
 P = TypeVar("P", bound="MarketListing")
 M = TypeVar("M", bound="MarketEvent")
@@ -22,10 +21,10 @@ class MarketActionType(Enum):
 @dataclass
 class ListOnMarket:
     action_type: Literal[MarketActionType.PlaceOnMarket]
-    assetsID: str
+    assetsID: str  # TODO change to item_id
+    buyer_pays: str
     market_hash_name: str
     you_receive: str
-    buyer_pays: str
 
     @classmethod
     def from_dict(cls: Type[T], dictionary: dict) -> T:
@@ -46,10 +45,10 @@ class ListOnMarket:
 @dataclass
 class DelistFromMarket:
     action_type: Literal[MarketActionType.RemoveFromMarket]
-    market_hash_name: str
     itemID: str
-    Unowned_itemID: str
     listing_id: str
+    market_hash_name: str
+    Unowned_itemID: str
 
     @classmethod
     def from_dict(cls: Type[V], dictionary: dict) -> V:
@@ -64,98 +63,79 @@ class DelistFromMarket:
 
 @dataclass
 class InventoryItem:
-    appid: int
-    classid: str
     amount: str
-    instanceid: str
-    currency: int
-    background_color: str
-    tradable: int
-    name_color: str
-    type: str
-    market_name: str
-    market_hash_name: str
-    commodity: int
-    market_tradable_restriction: int
-    marketable: int
-    contextid: str
-    id: str
-
-    @classmethod
-    def from_inventory(cls: Type[X], dictionary: dict) -> X:
-        """Make an inventory Item from API response."""
-        return cls(
-            currency=dictionary["currency"],
-            appid=dictionary["appid"],
-            contextid=dictionary["contextid"],
-            id=dictionary["id"],
-            classid=dictionary["classid"],
-            instanceid=dictionary["instanceid"],
-            amount=dictionary["amount"],
-            background_color=dictionary["background_color"],
-            tradable=bool(dictionary["tradable"]),
-            name_color=dictionary["name_color"],
-            type=dictionary["type"],
-            market_name=dictionary["market_name"],
-            market_hash_name=dictionary["market_hash_name"],
-            commodity=bool(dictionary["commodity"]),
-            market_tradable_restriction=dictionary["market_tradable_restriction"],
-            marketable=bool(dictionary["marketable"]),
-        )
-
-
-@dataclass
-class Description:
     appid: int
-    classid: str
-    amount: str
-    contextid: str
-    currency: int
-    id: str
-    instanceid: str
-    original_amount: str
-    status: int
-    unowned_id: str
-    unowned_contextid: str
     background_color: str
-    tradable: bool
-    name: str
-    name_color: str
-    type: str
-    market_name: str
-    market_hash_name: str
+    classid: str
     commodity: bool
+    contextid: str
+    instanceid: str
+    item_id: str
+    market_hash_name: str
+    market_name: str
     market_tradable_restriction: int
     marketable: bool
-    owner: int
+    name_color: str
+    original_amount: Optional[str]
+    owner: Optional[int]
+    status: Optional[int]
+    tradable: bool
+    type: str
+    unowned_contextid: Optional[str]
+    unowned_id: Optional[str]
 
     @classmethod
-    def from_my_listing_dict(cls: Type[K], dictionary: dict) -> K:
+    def from_my_listing_dict(cls: Type[X], dictionary: dict) -> X:
         return cls(
-            currency=dictionary["currency"],
-            appid=dictionary["appid"],
-            contextid=dictionary["contextid"],
-            id=dictionary["id"],
-            classid=dictionary["classid"],
-            instanceid=dictionary["instanceid"],
             amount=dictionary["amount"],
-            status=dictionary["status"],
-            original_amount=dictionary["original_amount"],
-            unowned_id=dictionary["unowned_id"],
-            unowned_contextid=dictionary["unowned_contextid"],
+            appid=dictionary["appid"],
             background_color=dictionary["background_color"],
-            tradable=bool(dictionary["tradable"]),
-            name=dictionary["market_hash_name"],
-            name_color=dictionary["name_color"],
-            type=dictionary["type"],
-            market_name=dictionary["market_name"],
-            market_hash_name=dictionary["market_hash_name"],
+            classid=dictionary["classid"],
             commodity=bool(dictionary["commodity"]),
+            contextid=dictionary["contextid"],
+            instanceid=dictionary["instanceid"],
+            item_id=dictionary["id"],
+            market_hash_name=dictionary["market_hash_name"],
+            market_name=dictionary["market_name"],
             market_tradable_restriction=dictionary["market_tradable_restriction"],
             marketable=bool(dictionary["marketable"]),
-            owner=dictionary["owner"],
+            name_color=dictionary["name_color"],
+            original_amount=dictionary.get("original_amount"),
+            owner=dictionary.get("owner"),
+            status=dictionary.get("status"),
+            tradable=bool(dictionary["tradable"]),
+            type=dictionary["type"],
+            unowned_contextid=dictionary.get("unowned_contextid"),
+            unowned_id=dictionary.get("unowned_id"),
         )
 
+    @classmethod
+    def from_item(cls: Type[X], item: "Item") -> X:
+        return cls(
+            amount=item.amount,
+            appid=int(item.appid),
+            background_color=item.background_color,
+            classid=item.classid,
+            commodity=bool(item.commodity),
+            contextid=item.contextid,
+            item_id=str(item.item_id),
+            instanceid=item.instanceid,
+            market_hash_name=item.market_hash_name,
+            market_name=item.market_name,
+            market_tradable_restriction=item.market_tradable_restriction,
+            marketable=bool(item.marketable),
+            name_color=item.name_color,
+            original_amount=item.original_amount,
+            owner=item.owner,
+            status=item.status,
+            tradable=bool(item.tradable),
+            type=item.type,
+            unowned_contextid=item.unowned_contextid,
+            unowned_id=item.unowned_id,
+        )
+
+
+# TODO merge with Generic Market Listing
 
 @dataclass
 class MyMarketListing:
@@ -165,12 +145,12 @@ class MyMarketListing:
 
     """
 
-    listing_id: str
     buyer_pay: int
-    you_receive: int
     created_on: str
+    description: InventoryItem
+    listing_id: str
     need_confirmation: bool
-    description: Description
+    you_receive: int
 
     @classmethod
     def from_dict(cls: Type[L], dictionary: dict) -> L:
@@ -180,20 +160,32 @@ class MyMarketListing:
             you_receive=convert_string_prices(dictionary["you_receive"]),
             created_on=dictionary["created_on"],
             need_confirmation=dictionary["need_confirmation"],
-            description=Description.from_my_listing_dict(dictionary["description"]),
+            description=InventoryItem.from_my_listing_dict(dictionary["description"]),
+        )
+
+    @classmethod
+    def from_listing(cls: Type[L], listing: "Listing") -> L:
+        return cls(
+            listing_id=listing.listing_id,
+            buyer_pay=listing.buyer_pay,
+            you_receive=listing.you_receive,
+            # TODO Remove created on
+            created_on="",
+            need_confirmation=False,
+            description=InventoryItem.from_item(listing.item),
         )
 
 
 @dataclass
 class MarketListing:
+    asset: InventoryItem
+    converted_currencyid: int
+    converted_fee: int
+    converted_price: int
+    currencyid: int
+    fee: int
     listingid: str
     price: int
-    fee: int
-    currencyid: int
-    converted_price: int
-    converted_fee: int
-    converted_currencyid: int
-    asset: Description
 
     @classmethod
     def from_dict(cls: Type[P], listing_info: dict, asset_info: dict) -> P:
@@ -207,7 +199,7 @@ class MarketListing:
             converted_price=listing_info["converted_price"],
             converted_fee=listing_info["converted_fee"],
             converted_currencyid=listing_info["converted_currencyid"],
-            asset=Description.from_my_listing_dict(asset_info[object_id]),
+            asset=InventoryItem.from_my_listing_dict(asset_info[object_id]),
         )
 
 
@@ -219,12 +211,12 @@ class MarketEventTypes(Enum):
 
 @dataclass
 class MarketEvent:
+    event_datetime: datetime
+    event_type: MarketEventTypes
     listingid: str
     purchaseid: Optional[str]
-    event_type: MarketEventTypes
-    event_datetime: datetime
-    time_event_fraction: int
     steamid_actor: int
+    time_event_fraction: int
 
     @classmethod
     def from_event(cls: Type[M], dictionary: dict) -> M:

@@ -33,7 +33,7 @@ def get_items_to_list(
     """
 
     inventory = [item for item in inventory if item.marketable is True and item.market_hash_name == market_hash_name]
-    inventory = sorted(inventory, key=lambda x: x.id)
+    inventory = sorted(inventory, key=lambda x: x.item_id)
     prices = get_steam_fees_object(price=price)
 
     items_to_list = []
@@ -43,7 +43,7 @@ def get_items_to_list(
                 {
                     "action_type": MarketActionType.PlaceOnMarket,
                     "market_hash_name": item.market_hash_name,
-                    "assetsID": item.id,
+                    "assetsID": item.item_id,
                     "you_receive": prices["you_receive"],
                     "buyer_pays": prices["money_to_ask"],
                 }
@@ -71,7 +71,7 @@ def get_items_to_delist(market_hash_name: str, amount: int, listings: List[MyMar
                     "action_type": MarketActionType.RemoveFromMarket,
                     "market_hash_name": temp.description.market_hash_name,
                     "listing_id": temp.listing_id,
-                    "itemID": temp.description.id,
+                    "itemID": temp.description.item_id,
                     "Unowned_itemID": temp.description.unowned_id,
                 }
             )

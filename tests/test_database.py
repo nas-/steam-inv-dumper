@@ -1,7 +1,12 @@
 from datetime import datetime
 from unittest import TestCase
 
-from utilities.constants import DESCRIPTION
+from constants import (
+    DESCRIPTION,
+    TEST_EVENTS_KWARGS,
+    TEST_ITEM_KWARGS,
+    TEST_LISTING_KWARGS,
+)
 
 from steam_inv_dumper.db.db import Database
 from steam_inv_dumper.markets.exchange import Exchange
@@ -23,6 +28,8 @@ def clean_all_db(db: Database) -> None:
 
 
 class TestSteamDatabase(TestCase):
+    maxDiff = None
+
     def tearDown(self) -> None:
         clean_all_db(self.db)
 
@@ -30,34 +37,9 @@ class TestSteamDatabase(TestCase):
         config = load_config("test_config.json").unwrap()
         self.db = Database(config=config)
         clean_all_db(self.db)
-
-        itemid = "12345"
-        listing_id = "123456789"
-        item_for_db = self.db.Item(item_id=itemid, market_hash_name="casekey1")
-        for_db = self.db.Listing(
-            item_id=itemid,
-            listing_id=listing_id,
-            you_receive=1430,
-            buyer_pay=1499,
-        )
-        events = [
-            self.db.Event(
-                listing_id=listing_id,
-                event_type="ListingCreated",
-                event_datetime=datetime(year=2023, month=1, day=1),
-                time_event_fraction=1234,
-                steam_id_actor="123456789",
-            ),
-            self.db.Event(
-                listing_id=listing_id,
-                event_type="ListingSold",
-                event_datetime=datetime(year=2023, month=1, day=2),
-                time_event_fraction=1234,
-                steam_id_actor="233432432423",
-            ),
-        ]
-        self.db.Item.query.session.add(item_for_db)
-        self.db.Listing.query.session.add(for_db)
+        events = [self.db.Event(**event) for event in TEST_EVENTS_KWARGS]
+        self.db.Item.query.session.add(self.db.Item(**TEST_ITEM_KWARGS))
+        self.db.Listing.query.session.add(self.db.Listing(**TEST_LISTING_KWARGS))
         self.db.Event.query.session.add_all(events)
         self.db.Item.query.session.flush()
         self.db.Listing.query.session.flush()
@@ -95,17 +77,29 @@ class TestSteamDatabase(TestCase):
         self.assertDictEqual(
             item_json,
             {
-                "stale_item_id": K.stale_item_id,
-                "sold": K.sold,
-                "id": K.id,
-                "contextid": K.contextid,
-                "item_id": K.item_id,
-                "market_hash_name": K.market_hash_name,
-                "account": K.account,
-                "appid": K.appid,
-                "tradable": K.tradable,
-                "marketable": K.marketable,
-                "commodity": K.commodity,
+                "account": "",
+                "amount": 1,
+                "appid": "730",
+                "background_color": "",
+                "classid": "123456789",
+                "commodity": True,
+                "contextid": "2",
+                "instanceid": "2022",
+                "item_id": "12345",
+                "market_hash_name": "casekey1",
+                "market_name": "",
+                "market_tradable_restriction": 0,
+                "marketable": True,
+                "name_color": "",
+                "original_amount": None,
+                "owner": None,
+                "sold": False,
+                "stale_item_id": False,
+                "status": None,
+                "tradable": True,
+                "type": "",
+                "unowned_contextid": None,
+                "unowned_id": None,
             },
         )
 
@@ -143,16 +137,14 @@ class TestListingIdAddedLater(TestCase):
         self.exchange = Exchange(config=config, database=db, inventory_provider=None, market_provider=None)
         clean_all_db(self.exchange.database)
 
-        itemid = "12345"
-        item_for_db = self.exchange.database.Item(item_id=itemid, market_hash_name="casekey1")
         for_db = self.exchange.database.Listing(
-            item_id=itemid,
+            item_id="12345",
             listing_id=None,
             you_receive=1430,
             buyer_pay=1499,
             currency="USD",
         )
-        self.exchange.database.Item.query.session.add(item_for_db)
+        self.exchange.database.Item.query.session.add(self.exchange.database.Item(**TEST_ITEM_KWARGS))
         self.exchange.database.Listing.query.session.add(for_db)
         self.exchange.database.Item.query.session.flush()
         self.exchange.database.Listing.query.session.flush()
