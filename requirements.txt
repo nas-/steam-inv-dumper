@@ -1,4 +1,4 @@
-SQLAlchemy~=1.4.27
+SQLAlchemy~=2.0.21
 result~=0.13.1
 beautifulsoup4~=4.10.0
 requests~=2.31.0
